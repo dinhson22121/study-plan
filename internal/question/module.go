@@ -10,11 +10,15 @@ import (
 	questionhttp "github.com/son-ngo/edu-app/internal/question/interfaces/http"
 )
 
-// Register assembles the question module and mounts its routes.
+// Register assembles the question module and mounts its routes (the question
+// bank plus the admin question-draft review/publish endpoints).
 func Register(rg *gin.RouterGroup, deps *app.Deps) {
 	repo := infrastructure.NewPgRepository(deps.DB)
 	svc := application.NewService(repo)
 	questionhttp.NewHandler(svc, deps.AuthValidate).Routes(rg)
+
+	draftSvc := application.NewDraftService(infrastructure.NewPgDraftRepository(deps.DB), svc)
+	questionhttp.NewAdminDraftHandler(draftSvc, deps.AuthValidate).Routes(rg)
 }
 
 // NewService exposes the question service for other modules (placement, quiz).

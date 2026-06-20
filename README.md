@@ -77,6 +77,31 @@ environment or a `.env` file (the compose `x-app-env` block has the defaults).
 - Kafka advertises two listeners: `kafka:29092` (in-network, used by the app) and
   `localhost:9092` (host tools).
 
+## Admin upload & PDF parsing
+
+Admins upload exam PDFs straight to object storage (S3/MinIO) via presigned URLs;
+a Python worker parses them into reviewable question drafts:
+
+```
+POST /admin/uploads/init      → presigned PUT URL (+ asset record, PENDING)
+   (client PUTs the PDF directly to S3/MinIO)
+POST /admin/uploads/complete  → verify object (HEAD) → asset UPLOADED → queue parse_job
+   workers/pdf_parser          → claim job (FOR UPDATE SKIP LOCKED) → extract text →
+                                 parse MCQ → write question_draft(+options)
+GET  /admin/uploads/:id/draft-questions     → review
+PUT  /admin/question-drafts/:id[/options/:optionId]  → edit
+POST /admin/question-drafts/:id/publish     → promote to a real Question
+```
+
+- Storage: S3-compatible; **MinIO** in local dev (config `EDU_S3_*`, default bucket
+  `edu-assets`, 20 MB limit, `application/pdf` only).
+- The **worker** is a separate runtime (`workers/pdf_parser`, Python + PyMuPDF +
+  psycopg) — runs as the `worker` service in compose, or standalone (see its README).
+- MVP: text-based PDFs, MCQ only; partial parses are marked `REVIEW_REQUIRED`;
+  nothing is published without admin review. All endpoints are ADMIN-only.
+
+`make deploy` brings up MinIO + a bucket-init job + the worker alongside the API.
+
 ## Testing
 
 ```bash

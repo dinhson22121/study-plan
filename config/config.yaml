@@ -29,3 +29,15 @@ jwt:
 fcm:
   credentials_file: "config/firebase-service-account.json"
   project_id: ""
+
+s3:
+  endpoint: "http://localhost:9000" # MinIO; empty = real AWS S3
+  region: "us-east-1"
+  access_key: "minioadmin"
+  secret_key: "minioadmin"
+  bucket: "edu-assets"
+  use_path_style: true
+
+upload:
+  max_file_size_bytes: 20971520 # 20 MB
+  presign_ttl: "15m"

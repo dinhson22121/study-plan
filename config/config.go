@@ -20,6 +20,24 @@ type Config struct {
 	Kafka    KafkaConfig    `mapstructure:"kafka"`
 	JWT      JWTConfig      `mapstructure:"jwt"`
 	FCM      FCMConfig      `mapstructure:"fcm"`
+	S3       S3Config       `mapstructure:"s3"`
+	Upload   UploadConfig   `mapstructure:"upload"`
+}
+
+// S3Config configures the S3-compatible object store (MinIO in local dev).
+type S3Config struct {
+	Endpoint     string `mapstructure:"endpoint"`
+	Region       string `mapstructure:"region"`
+	AccessKey    string `mapstructure:"access_key"`
+	SecretKey    string `mapstructure:"secret_key"`
+	Bucket       string `mapstructure:"bucket"`
+	UsePathStyle bool   `mapstructure:"use_path_style"`
+}
+
+// UploadConfig configures admin asset uploads.
+type UploadConfig struct {
+	MaxFileSizeBytes int64         `mapstructure:"max_file_size_bytes"`
+	PresignTTL       time.Duration `mapstructure:"presign_ttl"`
 }
 
 type PostgresConfig struct {
@@ -101,6 +119,8 @@ func bindEnvs(v *viper.Viper) {
 		"kafka.brokers", "kafka.group_id", "kafka.partitions",
 		"jwt.secret", "jwt.access_ttl", "jwt.refresh_ttl", "jwt.issuer",
 		"fcm.credentials_file", "fcm.project_id",
+		"s3.endpoint", "s3.region", "s3.access_key", "s3.secret_key", "s3.bucket",
+		"upload.presign_ttl",
 	}
 	for _, k := range keys {
 		_ = v.BindEnv(k)
@@ -119,6 +139,10 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("jwt.access_ttl", 15*time.Minute)
 	v.SetDefault("jwt.refresh_ttl", 720*time.Hour) // 30 days
 	v.SetDefault("jwt.issuer", "edu-app")
+	v.SetDefault("s3.region", "us-east-1")
+	v.SetDefault("s3.use_path_style", true)                  // MinIO requires path-style addressing
+	v.SetDefault("upload.max_file_size_bytes", 20*1024*1024) // 20MB
+	v.SetDefault("upload.presign_ttl", 15*time.Minute)
 }
 
 // validate enforces that secrets and connection strings required to boot are
