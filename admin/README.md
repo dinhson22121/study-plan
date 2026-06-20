@@ -1,4 +1,4 @@
-# Edu Admin (apps/admin-web)
+# Edu Admin (admin)
 
 React 19 + Vite + TypeScript admin web app for the edu-app backend: login, upload
 exam PDFs to S3/MinIO via presigned URLs, track parse jobs, review/edit parsed

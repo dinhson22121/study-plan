@@ -1,0 +1,12 @@
+# Go build artifacts
+/server
+/migrate
+*.exe
+dist/
+
+# Test / coverage output
+coverage.out
+*.out
+
+# Secrets — never commit
+config/firebase-service-account.json

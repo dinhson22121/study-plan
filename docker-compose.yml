@@ -101,7 +101,7 @@ services:
 
   # One-shot: apply database migrations, then exit. The app waits for it.
   migrate:
-    build: .
+    build: ./server
     image: edu-app:latest
     entrypoint: ["/app/migrate", "up"]
     environment:
@@ -112,7 +112,7 @@ services:
     restart: "no"
 
   app:
-    build: .
+    build: ./server
     image: edu-app:latest
     environment:
       <<: *app-env
@@ -132,7 +132,7 @@ services:
     # To enable real FCM push, drop the service-account JSON next to this file
     # and uncomment the mount below.
     # volumes:
-    #   - ./config/firebase-service-account.json:/app/config/firebase-service-account.json:ro
+    #   - ./server/config/firebase-service-account.json:/app/config/firebase-service-account.json:ro
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
       interval: 10s
@@ -142,7 +142,7 @@ services:
 
   # Python PDF parse worker (separate runtime; see workers/pdf_parser).
   worker:
-    build: ./workers/pdf_parser
+    build: ./worker
     image: edu-pdf-parser:latest
     environment:
       <<: *app-env
