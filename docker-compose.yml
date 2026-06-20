@@ -1,5 +1,25 @@
-# Local development infrastructure: Postgres, Redis, and Kafka (KRaft mode —
-# no Zookeeper, unlike the legacy PRD sketch). Secrets here are dev-only.
+# Full local/self-hosted stack: Postgres, Redis, Kafka (KRaft), plus the app and
+# a one-shot migration job. `docker compose up --build` brings everything online,
+# runs migrations, then starts the API on http://localhost:8080.
+# Secrets here are dev defaults — override via a .env file or your environment.
+
+# Shared app configuration. Service hostnames (postgres/redis/kafka) are used for
+# in-network connections; Kafka uses its internal listener on :29092.
+x-app-env: &app-env
+  EDU_ENV: "production"
+  EDU_PORT: ":8080"
+  EDU_TIMEZONE: "Asia/Ho_Chi_Minh"
+  EDU_POSTGRES_URL: "postgres://eduapp:secret@postgres:5432/eduapp?sslmode=disable"
+  EDU_REDIS_URL: "redis://redis:6379/0"
+  EDU_KAFKA_BROKERS: "kafka:29092"
+  EDU_JWT_SECRET: "${EDU_JWT_SECRET:-change-me-in-production}"
+  EDU_FCM_CREDENTIALS_FILE: "/app/config/firebase-service-account.json"
+  EDU_S3_ENDPOINT: "http://minio:9000"
+  EDU_S3_REGION: "us-east-1"
+  EDU_S3_ACCESS_KEY: "minioadmin"
+  EDU_S3_SECRET_KEY: "minioadmin"
+  EDU_S3_BUCKET: "edu-assets"
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -30,16 +50,18 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.6.0
     ports:
-      - "9092:9092"
+      - "9092:9092" # host access
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: "broker,controller"
       KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:29093"
-      KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093"
-      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://localhost:9092"
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      # Two PLAINTEXT listeners: 29092 for in-network clients (advertised as
+      # kafka:29092), 9092 for host tools (advertised as localhost:9092).
+      KAFKA_LISTENERS: "INTERNAL://0.0.0.0:29092,HOST://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093"
+      KAFKA_ADVERTISED_LISTENERS: "INTERNAL://kafka:29092,HOST://localhost:9092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "INTERNAL:PLAINTEXT,HOST:PLAINTEXT,CONTROLLER:PLAINTEXT"
       KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
-      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "INTERNAL"
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
@@ -51,5 +73,91 @@ services:
       timeout: 5s
       retries: 10
 
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000" # S3 API
+      - "9001:9001" # web console
+    volumes:
+      - minio_data:/data
+
+  # One-shot: wait for MinIO, then create the asset bucket. The app/worker wait
+  # for this to complete (also serves as a MinIO readiness gate).
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 minioadmin minioadmin; do echo 'waiting for minio'; sleep 2; done;
+      mc mb --ignore-existing local/edu-assets;
+      echo 'bucket ready';
+      "
+    restart: "no"
+
+  # One-shot: apply database migrations, then exit. The app waits for it.
+  migrate:
+    build: .
+    image: edu-app:latest
+    entrypoint: ["/app/migrate", "up"]
+    environment:
+      <<: *app-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    build: .
+    image: edu-app:latest
+    environment:
+      <<: *app-env
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+    # To enable real FCM push, drop the service-account JSON next to this file
+    # and uncomment the mount below.
+    # volumes:
+    #   - ./config/firebase-service-account.json:/app/config/firebase-service-account.json:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # Python PDF parse worker (separate runtime; see workers/pdf_parser).
+  worker:
+    build: ./workers/pdf_parser
+    image: edu-pdf-parser:latest
+    environment:
+      <<: *app-env
+      EDU_S3_USE_PATH_STYLE: "true"
+      EDU_PARSER_POLL_INTERVAL: "5"
+      EDU_PARSER_VERSION: "pdf-parser-mvp-1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
 volumes:
   postgres_data:
+  minio_data:

@@ -1,5 +1,3 @@
-// Package application contains the studyplan use cases: generating a plan from
-// goal + placement + curriculum, and reading plans.
 package application
 
 import (
@@ -13,10 +11,8 @@ import (
 	"github.com/son-ngo/edu-app/internal/studyplan/domain"
 )
 
-// defaultLevel is used when the user has no placement result for the subject.
 const defaultLevel = "BEGINNER"
 
-// Service implements the studyplan use cases.
 type Service struct {
 	repo     domain.Repository
 	topics   domain.TopicSource
@@ -27,7 +23,6 @@ type Service struct {
 	newID    func() string
 }
 
-// NewService builds the service.
 func NewService(repo domain.Repository, topics domain.TopicSource, levels domain.LevelSource, goals domain.GoalSource, reminder domain.ReminderEnqueuer) *Service {
 	return &Service{
 		repo: repo, topics: topics, levels: levels, goals: goals, reminder: reminder,
@@ -35,13 +30,10 @@ func NewService(repo domain.Repository, topics domain.TopicSource, levels domain
 	}
 }
 
-// GeneratePlan builds a study plan for a subject from the user's goal (timing),
-// placement level, and the subject's topics, then enqueues the first milestone
-// reminder. A reminder failure is non-fatal — the plan is still returned.
 func (s *Service) GeneratePlan(ctx context.Context, userID, subjectID string) (*domain.StudyPlan, error) {
 	weeks, target, err := s.goals.PlanWindow(ctx, userID)
 	if err != nil {
-		return nil, err // ErrNotFound -> user must set a goal first
+		return nil, err
 	}
 
 	topicIDs, err := s.topics.ListTopicIDs(ctx, subjectID)
@@ -70,7 +62,6 @@ func (s *Service) GeneratePlan(ctx context.Context, userID, subjectID string) (*
 		return nil, err
 	}
 
-	// Best-effort: nudge the student about the first milestone via notification.
 	if first := plan.FirstMilestone(); first != nil {
 		label := fmt.Sprintf("Tuần %d", first.WeekNumber)
 		idemKey := plan.ID + "-w" + fmt.Sprint(first.WeekNumber)
@@ -80,12 +71,10 @@ func (s *Service) GeneratePlan(ctx context.Context, userID, subjectID string) (*
 	return plan, nil
 }
 
-// GetPlan returns a plan by id.
 func (s *Service) GetPlan(ctx context.Context, id string) (*domain.StudyPlan, error) {
 	return s.repo.GetByID(ctx, id)
 }
 
-// ListPlans returns a user's plans.
 func (s *Service) ListPlans(ctx context.Context, userID string) ([]domain.StudyPlan, error) {
 	return s.repo.ListByUser(ctx, userID)
 }

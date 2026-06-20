@@ -44,7 +44,7 @@ func newService(act *fakeActivity, prog fakeProgress, qz fakeQuiz, now time.Time
 
 func TestDashboard_AggregatesAverage(t *testing.T) {
 	prog := fakeProgress{snap: domain.ProgressSnapshot{CurrentStreak: 3, LongestStreak: 5, TopicsTotal: 4, TopicsCompleted: 2}}
-	qz := fakeQuiz{scores: []float64{80, 100, 60}} // avg 80
+	qz := fakeQuiz{scores: []float64{80, 100, 60}}
 	svc := newService(&fakeActivity{}, prog, qz, time.Unix(0, 0))
 
 	d, err := svc.Dashboard(context.Background(), "u1")

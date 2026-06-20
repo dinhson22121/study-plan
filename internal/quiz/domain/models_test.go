@@ -28,11 +28,10 @@ func TestQuizSession_GradeScoresAndReviews(t *testing.T) {
 		"q5": {CorrectOptionIDs: []string{"e"}, Explanation: "e5"},
 	}
 	answers := []Answer{
-		{QuestionID: "q1", OptionID: "a"}, // correct
-		{QuestionID: "q2", OptionID: "b"}, // correct
-		{QuestionID: "q3", OptionID: "c"}, // correct
-		{QuestionID: "q4", OptionID: "c"}, // wrong
-		// q5 unanswered
+		{QuestionID: "q1", OptionID: "a"},
+		{QuestionID: "q2", OptionID: "b"},
+		{QuestionID: "q3", OptionID: "c"},
+		{QuestionID: "q4", OptionID: "c"},
 	}
 	res := s.Grade(answers, details, time.Unix(100, 0))
 
@@ -48,7 +47,7 @@ func TestQuizSession_GradeScoresAndReviews(t *testing.T) {
 	if len(res.Reviews) != 5 {
 		t.Fatalf("expected 5 reviews, got %d", len(res.Reviews))
 	}
-	// q5 unanswered -> not correct, empty selected, explanation present
+
 	last := res.Reviews[4]
 	if last.QuestionID != "q5" || last.IsCorrect || last.SelectedOptionID != "" || last.Explanation != "e5" {
 		t.Fatalf("unanswered review wrong: %+v", last)

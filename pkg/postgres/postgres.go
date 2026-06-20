@@ -1,4 +1,3 @@
-// Package postgres provides a configured pgx connection pool.
 package postgres
 
 import (
@@ -9,15 +8,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Config holds the pool tuning parameters.
 type Config struct {
 	URL      string
 	MaxConns int32
 	MinConns int32
 }
 
-// Connect opens and verifies a pgx connection pool. It pings within a short
-// timeout so a misconfigured DB fails fast at startup rather than on first use.
 func Connect(ctx context.Context, cfg Config) (*pgxpool.Pool, error) {
 	poolCfg, err := pgxpool.ParseConfig(cfg.URL)
 	if err != nil {

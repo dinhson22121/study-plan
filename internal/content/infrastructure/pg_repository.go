@@ -1,5 +1,3 @@
-// Package infrastructure provides the Postgres adapter for the content
-// repository.
 package infrastructure
 
 import (
@@ -16,16 +14,12 @@ import (
 
 const pgForeignKeyViolation = "23503"
 
-// PgRepository implements domain.Repository over Postgres.
 type PgRepository struct {
 	db *pgxpool.Pool
 }
 
-// NewPgRepository builds the repository.
 func NewPgRepository(db *pgxpool.Pool) *PgRepository { return &PgRepository{db: db} }
 
-// CreateLesson inserts a lesson and its items atomically. A reference to a
-// missing topic surfaces as a validation error.
 func (r *PgRepository) CreateLesson(ctx context.Context, l *domain.Lesson) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -55,7 +49,6 @@ func (r *PgRepository) CreateLesson(ctx context.Context, l *domain.Lesson) error
 	return nil
 }
 
-// GetLesson returns a lesson with its items ordered.
 func (r *PgRepository) GetLesson(ctx context.Context, id string) (*domain.Lesson, error) {
 	const q = `SELECT id, topic_id, title, order_index FROM lesson WHERE id = $1`
 	var l domain.Lesson
@@ -74,7 +67,6 @@ func (r *PgRepository) GetLesson(ctx context.Context, id string) (*domain.Lesson
 	return &l, nil
 }
 
-// ListByTopic returns lessons of a topic with their items.
 func (r *PgRepository) ListByTopic(ctx context.Context, topicID string) ([]domain.Lesson, error) {
 	const q = `SELECT id, topic_id, title, order_index FROM lesson WHERE topic_id = $1 ORDER BY order_index`
 	rows, err := r.db.Query(ctx, q, topicID)

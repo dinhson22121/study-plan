@@ -1,5 +1,3 @@
-// Package config loads application configuration from a YAML file overlaid with
-// environment variables (env wins). All runtime wiring reads from Config.
 package config
 
 import (
@@ -10,7 +8,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Config is the fully-resolved application configuration.
 type Config struct {
 	Env      string         `mapstructure:"env"`
 	Port     string         `mapstructure:"port"`
@@ -20,6 +17,22 @@ type Config struct {
 	Kafka    KafkaConfig    `mapstructure:"kafka"`
 	JWT      JWTConfig      `mapstructure:"jwt"`
 	FCM      FCMConfig      `mapstructure:"fcm"`
+	S3       S3Config       `mapstructure:"s3"`
+	Upload   UploadConfig   `mapstructure:"upload"`
+}
+
+type S3Config struct {
+	Endpoint     string `mapstructure:"endpoint"`
+	Region       string `mapstructure:"region"`
+	AccessKey    string `mapstructure:"access_key"`
+	SecretKey    string `mapstructure:"secret_key"`
+	Bucket       string `mapstructure:"bucket"`
+	UsePathStyle bool   `mapstructure:"use_path_style"`
+}
+
+type UploadConfig struct {
+	MaxFileSizeBytes int64         `mapstructure:"max_file_size_bytes"`
+	PresignTTL       time.Duration `mapstructure:"presign_ttl"`
 }
 
 type PostgresConfig struct {
@@ -51,9 +64,6 @@ type FCMConfig struct {
 	ProjectID       string `mapstructure:"project_id"`
 }
 
-// Load reads configuration from config.yaml (searched in path, the current dir,
-// and ./config) plus EDU_* environment variables, then validates required
-// fields. Env vars use underscores for nesting, e.g. EDU_POSTGRES_URL.
 func Load(paths ...string) (*Config, error) {
 	v := viper.New()
 	v.SetConfigName("config")
@@ -72,8 +82,7 @@ func Load(paths ...string) (*Config, error) {
 	bindEnvs(v)
 
 	if err := v.ReadInConfig(); err != nil {
-		// A missing file is fine when env vars supply everything; other read
-		// errors (malformed YAML) are fatal.
+
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
 			return nil, fmt.Errorf("read config: %w", err)
 		}
@@ -89,10 +98,6 @@ func Load(paths ...string) (*Config, error) {
 	return &cfg, nil
 }
 
-// bindEnvs explicitly binds every key to its EDU_* env var. AutomaticEnv alone
-// only resolves keys viper already knows (from defaults or a loaded file), so
-// nested keys supplied solely via env (postgres.url, jwt.secret, ...) need an
-// explicit binding to be picked up by Unmarshal.
 func bindEnvs(v *viper.Viper) {
 	keys := []string{
 		"env", "port", "timezone",
@@ -101,6 +106,8 @@ func bindEnvs(v *viper.Viper) {
 		"kafka.brokers", "kafka.group_id", "kafka.partitions",
 		"jwt.secret", "jwt.access_ttl", "jwt.refresh_ttl", "jwt.issuer",
 		"fcm.credentials_file", "fcm.project_id",
+		"s3.endpoint", "s3.region", "s3.access_key", "s3.secret_key", "s3.bucket", "s3.use_path_style",
+		"upload.max_file_size_bytes", "upload.presign_ttl",
 	}
 	for _, k := range keys {
 		_ = v.BindEnv(k)
@@ -117,12 +124,14 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("kafka.group_id", "edu-app")
 	v.SetDefault("kafka.partitions", 1)
 	v.SetDefault("jwt.access_ttl", 15*time.Minute)
-	v.SetDefault("jwt.refresh_ttl", 720*time.Hour) // 30 days
+	v.SetDefault("jwt.refresh_ttl", 720*time.Hour)
 	v.SetDefault("jwt.issuer", "edu-app")
+	v.SetDefault("s3.region", "us-east-1")
+	v.SetDefault("s3.use_path_style", true)
+	v.SetDefault("upload.max_file_size_bytes", 20*1024*1024)
+	v.SetDefault("upload.presign_ttl", 15*time.Minute)
 }
 
-// validate enforces that secrets and connection strings required to boot are
-// present, failing fast with a clear message (no silent zero-value startup).
 func (c *Config) validate() error {
 	var missing []string
 	if c.Postgres.URL == "" {

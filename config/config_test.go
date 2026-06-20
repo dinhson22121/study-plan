@@ -6,9 +6,6 @@ import (
 	"time"
 )
 
-// chdirTemp moves into an empty working directory so Load's implicit "." and
-// "./config" search paths don't pick up the repo's dev config.yaml, keeping
-// these tests hermetic. Restores the original cwd on cleanup.
 func chdirTemp(t *testing.T) {
 	t.Helper()
 	orig, err := os.Getwd()
@@ -23,17 +20,17 @@ func chdirTemp(t *testing.T) {
 }
 
 func TestLoad_EnvOverridesAndDefaults(t *testing.T) {
-	// Arrange: supply required fields via env; rely on defaults for the rest.
+
 	chdirTemp(t)
 	t.Setenv("EDU_POSTGRES_URL", "postgres://u:p@db:5432/x")
 	t.Setenv("EDU_REDIS_URL", "redis://cache:6379/0")
 	t.Setenv("EDU_KAFKA_BROKERS", "b1:9092,b2:9092")
 	t.Setenv("EDU_JWT_SECRET", "supersecret")
+	t.Setenv("EDU_S3_USE_PATH_STYLE", "false")
+	t.Setenv("EDU_UPLOAD_MAX_FILE_SIZE_BYTES", "4096")
 
-	// Act
 	cfg, err := Load()
 
-	// Assert
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -49,10 +46,16 @@ func TestLoad_EnvOverridesAndDefaults(t *testing.T) {
 	if cfg.Port != ":8080" {
 		t.Fatalf("expected default port :8080, got %q", cfg.Port)
 	}
+	if cfg.S3.UsePathStyle {
+		t.Fatalf("expected s3.use_path_style override to be false")
+	}
+	if cfg.Upload.MaxFileSizeBytes != 4096 {
+		t.Fatalf("expected upload.max_file_size_bytes override to be 4096, got %d", cfg.Upload.MaxFileSizeBytes)
+	}
 }
 
 func TestLoad_FailsWhenRequiredMissing(t *testing.T) {
-	// Only set some required fields; jwt.secret missing should fail validation.
+
 	chdirTemp(t)
 	t.Setenv("EDU_POSTGRES_URL", "postgres://u:p@db:5432/x")
 	t.Setenv("EDU_REDIS_URL", "redis://cache:6379/0")

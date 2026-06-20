@@ -107,7 +107,6 @@ func TestGetProfile_NotFound(t *testing.T) {
 	}
 }
 
-// stubEvent is a non-matching DomainEvent for the wrong-type test.
 type stubEvent struct{}
 
 func (stubEvent) EventName() string     { return "other.event" }

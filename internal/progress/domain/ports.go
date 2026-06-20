@@ -2,7 +2,6 @@ package domain
 
 import "context"
 
-// Repository persists topic progress, streaks, and achievements.
 type Repository interface {
 	GetTopicProgress(ctx context.Context, userID, topicID string) (*TopicProgress, error)
 	UpsertTopicProgress(ctx context.Context, p *TopicProgress) error
@@ -15,7 +14,6 @@ type Repository interface {
 	SaveAchievement(ctx context.Context, a *Achievement) error
 }
 
-// TopicTitleSource resolves a topic's title for the achievement push copy.
 type TopicTitleSource interface {
 	Title(ctx context.Context, topicID string) (string, error)
 }

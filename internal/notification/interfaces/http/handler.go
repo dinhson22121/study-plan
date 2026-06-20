@@ -1,4 +1,3 @@
-// Package notifhttp exposes the notification endpoints over HTTP (Gin).
 package notifhttp
 
 import (
@@ -13,18 +12,15 @@ import (
 	"github.com/son-ngo/edu-app/internal/shared/middleware"
 )
 
-// Handler adapts HTTP requests to the notification manager.
 type Handler struct {
 	mgr      *application.Manager
 	validate middleware.TokenValidator
 }
 
-// NewHandler builds the notification HTTP handler.
 func NewHandler(mgr *application.Manager, validate middleware.TokenValidator) *Handler {
 	return &Handler{mgr: mgr, validate: validate}
 }
 
-// Routes mounts the device, preference, history, and admin endpoints.
 func (h *Handler) Routes(rg *gin.RouterGroup) {
 	auth := middleware.Auth(h.validate)
 

@@ -1,6 +1,3 @@
-// Command server is the edu-app modular-monolith entrypoint. It loads config,
-// connects infrastructure, wires every domain module (via bootstrap), and serves
-// HTTP with graceful shutdown.
 package main
 
 import (
@@ -68,7 +65,6 @@ func run(log *zap.Logger) error {
 		Log:      log,
 	}
 
-	// Background workers (notification consumers + scheduler) run until cancelled.
 	workerCtx, cancelWorkers := context.WithCancel(ctx)
 	defer cancelWorkers()
 

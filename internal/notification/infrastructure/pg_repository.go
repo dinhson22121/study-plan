@@ -12,15 +12,11 @@ import (
 	shared "github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// PgRepository implements domain.Repository over Postgres.
 type PgRepository struct {
 	db *pgxpool.Pool
 }
 
-// NewPgRepository builds the repository.
 func NewPgRepository(db *pgxpool.Pool) *PgRepository { return &PgRepository{db: db} }
-
-// --- Device tokens ---
 
 func (r *PgRepository) UpsertDeviceToken(ctx context.Context, dt *domain.DeviceToken) error {
 	const q = `
@@ -68,8 +64,6 @@ func (r *PgRepository) DeleteDeviceToken(ctx context.Context, userID, token stri
 	return nil
 }
 
-// --- Templates ---
-
 func (r *PgRepository) FindTemplate(ctx context.Context, code string) (*domain.NotificationTemplate, error) {
 	const q = `SELECT code, title, body, notification_type, is_active FROM notification_template WHERE code = $1 AND is_active = true`
 	var t domain.NotificationTemplate
@@ -84,8 +78,6 @@ func (r *PgRepository) FindTemplate(ctx context.Context, code string) (*domain.N
 	t.Type = domain.NotificationType(notifType)
 	return &t, nil
 }
-
-// --- Preferences ---
 
 func (r *PgRepository) FindPreference(ctx context.Context, userID string, nt domain.NotificationType) (*domain.NotificationPreference, error) {
 	const q = `SELECT enabled FROM notification_preference WHERE user_id = $1 AND notification_type = $2`
@@ -131,8 +123,6 @@ func (r *PgRepository) UpsertPreference(ctx context.Context, p *domain.Notificat
 	}
 	return nil
 }
-
-// --- Delivery log ---
 
 func (r *PgRepository) SaveLog(ctx context.Context, l *domain.NotificationLog) error {
 	const q = `
@@ -191,8 +181,6 @@ func (r *PgRepository) ListLogsByUser(ctx context.Context, userID string, limit,
 	return out, total, rows.Err()
 }
 
-// --- Audience ---
-
 func (r *PgRepository) ListActiveUserIDs(ctx context.Context) ([]string, error) {
 	const q = `SELECT DISTINCT user_id FROM device_token WHERE is_active = true`
 	rows, err := r.db.Query(ctx, q)
@@ -212,5 +200,4 @@ func (r *PgRepository) ListActiveUserIDs(ctx context.Context) ([]string, error) 
 	return out, rows.Err()
 }
 
-// compile-time check that PgRepository satisfies the port.
 var _ domain.Repository = (*PgRepository)(nil)

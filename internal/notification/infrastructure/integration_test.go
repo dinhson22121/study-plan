@@ -1,12 +1,5 @@
 //go:build integration
 
-// Integration tests for the notification Postgres repository and Redis
-// idempotency store. Run with:
-//
-//	make migrate-up   # ensure schema exists
-//	go test -tags=integration ./internal/notification/infrastructure/...
-//
-// Requires EDU_TEST_POSTGRES_URL and EDU_TEST_REDIS_URL; tests skip if unset.
 package infrastructure
 
 import (
@@ -37,7 +30,6 @@ func testPool(t *testing.T) *pgxpool.Pool {
 	return pool
 }
 
-// seedUser inserts a user row so device_token's FK is satisfied.
 func seedUser(t *testing.T, pool *pgxpool.Pool) string {
 	t.Helper()
 	id := uuid.NewString()
@@ -78,7 +70,6 @@ func TestPgRepository_PreferenceAndLog(t *testing.T) {
 	ctx := context.Background()
 	userID := seedUser(t, pool)
 
-	// Preference upsert + read.
 	if err := repo.UpsertPreference(ctx, &domain.NotificationPreference{UserID: userID, Type: domain.TypeDailyReminder, Enabled: false}); err != nil {
 		t.Fatalf("upsert pref: %v", err)
 	}
@@ -87,7 +78,6 @@ func TestPgRepository_PreferenceAndLog(t *testing.T) {
 		t.Fatalf("expected disabled pref, got %+v / %v", pref, err)
 	}
 
-	// Log save + status update + list.
 	log := domain.NewPendingLog(uuid.NewString(), userID, "DAILY_REMINDER_V1", domain.TypeDailyReminder, uuid.NewString(), time.Now())
 	if err := repo.SaveLog(ctx, log); err != nil {
 		t.Fatalf("save log: %v", err)

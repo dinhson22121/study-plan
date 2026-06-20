@@ -1,6 +1,3 @@
-// Package domain defines the question bounded context: the Question aggregate
-// (with its answer options), value objects for type and difficulty, and the
-// repository port. Questions reference a curriculum topic by id (soft link).
 package domain
 
 import (
@@ -9,7 +6,6 @@ import (
 	shared "github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// QuestionType is a value object for the question format.
 type QuestionType string
 
 const (
@@ -17,10 +13,8 @@ const (
 	TypeFreeText QuestionType = "FREE_TEXT"
 )
 
-// Valid reports whether t is a known question type.
 func (t QuestionType) Valid() bool { return t == TypeMCQ || t == TypeFreeText }
 
-// Difficulty is a value object for question difficulty.
 type Difficulty string
 
 const (
@@ -29,12 +23,10 @@ const (
 	DifficultyHard   Difficulty = "HARD"
 )
 
-// Valid reports whether d is a known difficulty.
 func (d Difficulty) Valid() bool {
 	return d == DifficultyEasy || d == DifficultyMedium || d == DifficultyHard
 }
 
-// ParseDifficulty validates and returns a Difficulty.
 func ParseDifficulty(s string) (Difficulty, error) {
 	d := Difficulty(strings.ToUpper(strings.TrimSpace(s)))
 	if !d.Valid() {
@@ -43,7 +35,6 @@ func ParseDifficulty(s string) (Difficulty, error) {
 	return d, nil
 }
 
-// AnswerOption is one selectable answer for an MCQ.
 type AnswerOption struct {
 	ID         string
 	Text       string
@@ -51,7 +42,6 @@ type AnswerOption struct {
 	OrderIndex int
 }
 
-// Question is the aggregate root: the prompt plus its answer options.
 type Question struct {
 	ID          string
 	TopicID     string
@@ -62,9 +52,6 @@ type Question struct {
 	Options     []AnswerOption
 }
 
-// NewQuestion validates and constructs a question. MCQ questions require at
-// least two options with at least one marked correct; FREE_TEXT questions must
-// have no options.
 func NewQuestion(id, topicID string, qtype QuestionType, stem string, difficulty Difficulty, explanation string, options []AnswerOption) (*Question, error) {
 	if topicID == "" {
 		return nil, shared.ErrValidation.WithMessage("topic id is required")
@@ -120,8 +107,6 @@ func validateMCQOptions(options []AnswerOption) error {
 	return nil
 }
 
-// IsCorrect reports whether the given option id is a correct answer. Used by the
-// quiz module for grading without exposing answer keys to clients.
 func (q *Question) IsCorrect(optionID string) bool {
 	for _, o := range q.Options {
 		if o.ID == optionID {

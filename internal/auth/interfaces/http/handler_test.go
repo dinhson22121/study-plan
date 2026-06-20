@@ -20,7 +20,6 @@ import (
 
 func init() { gin.SetMode(gin.TestMode) }
 
-// memRepo is an in-memory CredentialRepository for handler tests.
 type memRepo struct {
 	byEmail, byID map[string]*authdomain.UserCredential
 }
@@ -123,7 +122,7 @@ func TestLoginEndpoint_FlowAndWrongPassword(t *testing.T) {
 
 func TestLogoutEndpoint_RequiresAuth(t *testing.T) {
 	r := newTestRouter()
-	// No Authorization header -> logout must be rejected even with a refresh token.
+
 	w := doJSON(r, http.MethodPost, "/api/v1/auth/logout", gin.H{"refresh_token": "whatever"})
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("want 401 for unauthenticated logout, got %d", w.Code)

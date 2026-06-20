@@ -1,0 +1,19 @@
+# Keep the build context small and never bake secrets into the image.
+.git
+.gitignore
+.gitattributes
+.github
+*.md
+plan/
+coverage.out
+*.out
+dist/
+server
+migrate
+*.exe
+
+# Secrets — mount at runtime instead of copying.
+config/firebase-service-account.json
+.env
+.env.*
+*.local.yaml

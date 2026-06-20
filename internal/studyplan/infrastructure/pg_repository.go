@@ -11,15 +11,12 @@ import (
 	"github.com/son-ngo/edu-app/internal/studyplan/domain"
 )
 
-// PgRepository implements domain.Repository over Postgres.
 type PgRepository struct {
 	db *pgxpool.Pool
 }
 
-// NewPgRepository builds the repository.
 func NewPgRepository(db *pgxpool.Pool) *PgRepository { return &PgRepository{db: db} }
 
-// Save persists a plan, its milestones, and milestone topics atomically.
 func (r *PgRepository) Save(ctx context.Context, p *domain.StudyPlan) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -53,7 +50,6 @@ func (r *PgRepository) Save(ctx context.Context, p *domain.StudyPlan) error {
 	return nil
 }
 
-// GetByID loads a plan with its milestones and topics.
 func (r *PgRepository) GetByID(ctx context.Context, id string) (*domain.StudyPlan, error) {
 	const q = `SELECT id, user_id, subject_id, level, start_date, target_date, created_at FROM study_plan WHERE id = $1`
 	var p domain.StudyPlan
@@ -72,7 +68,6 @@ func (r *PgRepository) GetByID(ctx context.Context, id string) (*domain.StudyPla
 	return &p, nil
 }
 
-// ListByUser loads a user's plans with milestones and topics.
 func (r *PgRepository) ListByUser(ctx context.Context, userID string) ([]domain.StudyPlan, error) {
 	const q = `SELECT id, user_id, subject_id, level, start_date, target_date, created_at FROM study_plan WHERE user_id = $1 ORDER BY created_at DESC`
 	rows, err := r.db.Query(ctx, q, userID)
@@ -108,7 +103,6 @@ func (r *PgRepository) ListByUser(ctx context.Context, userID string) ([]domain.
 	return plans, nil
 }
 
-// loadMilestones loads milestones (with topics) for many plans, keyed by plan id.
 func (r *PgRepository) loadMilestones(ctx context.Context, planIDs []string) (map[string][]domain.Milestone, error) {
 	const mq = `SELECT id, plan_id, week_number, due_date FROM milestone WHERE plan_id = ANY($1) ORDER BY week_number`
 	rows, err := r.db.Query(ctx, mq, planIDs)
@@ -118,8 +112,8 @@ func (r *PgRepository) loadMilestones(ctx context.Context, planIDs []string) (ma
 	defer rows.Close()
 
 	out := map[string][]domain.Milestone{}
-	idx := map[string]*domain.Milestone{} // milestone id -> pointer for topic attach
-	order := map[string][]string{}        // plan id -> milestone ids in order
+	idx := map[string]*domain.Milestone{}
+	order := map[string][]string{}
 	for rows.Next() {
 		var m domain.Milestone
 		var planID string
@@ -133,7 +127,6 @@ func (r *PgRepository) loadMilestones(ctx context.Context, planIDs []string) (ma
 		return nil, shared.ErrInternal.WithCause(err)
 	}
 
-	// Build index into the slices for topic attachment.
 	var milestoneIDs []string
 	for planID := range out {
 		for i := range out[planID] {

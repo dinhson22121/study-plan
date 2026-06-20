@@ -46,12 +46,12 @@ func TestPlacementTest_Grade(t *testing.T) {
 		"q4": {"d": true},
 	}
 	answers := []Answer{
-		{QuestionID: "q1", OptionID: "a"},  // correct
-		{QuestionID: "q2", OptionID: "x"},  // wrong
-		{QuestionID: "q3", OptionID: "c"},  // correct
-		{QuestionID: "q99", OptionID: "z"}, // not in test, ignored
+		{QuestionID: "q1", OptionID: "a"},
+		{QuestionID: "q2", OptionID: "x"},
+		{QuestionID: "q3", OptionID: "c"},
+		{QuestionID: "q99", OptionID: "z"},
 	}
-	// 2 of 4 correct = 50%
+
 	if score := test.Grade(answers, correct); score != 50.0 {
 		t.Fatalf("expected 50.0, got %.2f", score)
 	}

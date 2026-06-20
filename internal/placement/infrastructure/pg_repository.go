@@ -11,15 +11,12 @@ import (
 	shared "github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// PgRepository implements domain.Repository over Postgres.
 type PgRepository struct {
 	db *pgxpool.Pool
 }
 
-// NewPgRepository builds the repository.
 func NewPgRepository(db *pgxpool.Pool) *PgRepository { return &PgRepository{db: db} }
 
-// SaveTest inserts the test and its ordered question snapshot atomically.
 func (r *PgRepository) SaveTest(ctx context.Context, t *domain.PlacementTest) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -43,7 +40,6 @@ func (r *PgRepository) SaveTest(ctx context.Context, t *domain.PlacementTest) er
 	return nil
 }
 
-// GetTest loads a test with its question snapshot.
 func (r *PgRepository) GetTest(ctx context.Context, id string) (*domain.PlacementTest, error) {
 	const q = `SELECT id, user_id, subject_id, status, created_at FROM placement_test WHERE id = $1`
 	var t domain.PlacementTest
@@ -72,7 +68,6 @@ func (r *PgRepository) GetTest(ctx context.Context, id string) (*domain.Placemen
 	return &t, rows.Err()
 }
 
-// CompleteWithResult inserts the result and marks the test COMPLETED in one tx.
 func (r *PgRepository) CompleteWithResult(ctx context.Context, testID string, res *domain.PlacementResult) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -97,7 +92,6 @@ func (r *PgRepository) CompleteWithResult(ctx context.Context, testID string, re
 	return nil
 }
 
-// ListResults returns a user's results, newest first.
 func (r *PgRepository) ListResults(ctx context.Context, userID string) ([]domain.PlacementResult, error) {
 	const q = `SELECT id, user_id, subject_id, score, level, completed_at FROM placement_result WHERE user_id = $1 ORDER BY completed_at DESC`
 	rows, err := r.db.Query(ctx, q, userID)
@@ -116,7 +110,6 @@ func (r *PgRepository) ListResults(ctx context.Context, userID string) ([]domain
 	return out, rows.Err()
 }
 
-// LatestResult returns the most recent result for a user+subject.
 func (r *PgRepository) LatestResult(ctx context.Context, userID, subjectID string) (*domain.PlacementResult, error) {
 	const q = `
 		SELECT id, user_id, subject_id, score, level, completed_at FROM placement_result

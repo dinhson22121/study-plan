@@ -1,5 +1,3 @@
-// Package infrastructure provides the Postgres adapter for the question
-// repository.
 package infrastructure
 
 import (
@@ -17,16 +15,12 @@ import (
 
 const pgForeignKeyViolation = "23503"
 
-// PgRepository implements domain.Repository over Postgres.
 type PgRepository struct {
 	db *pgxpool.Pool
 }
 
-// NewPgRepository builds the repository.
 func NewPgRepository(db *pgxpool.Pool) *PgRepository { return &PgRepository{db: db} }
 
-// Create inserts a question and its options atomically. A reference to a missing
-// topic surfaces as a validation error (not an internal error).
 func (r *PgRepository) Create(ctx context.Context, q *domain.Question) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -60,7 +54,6 @@ func (r *PgRepository) Create(ctx context.Context, q *domain.Question) error {
 	return nil
 }
 
-// GetByID returns a question with its options ordered.
 func (r *PgRepository) GetByID(ctx context.Context, id string) (*domain.Question, error) {
 	const q = `SELECT id, topic_id, type, stem, difficulty, explanation FROM question WHERE id = $1`
 	var qu domain.Question
@@ -83,7 +76,6 @@ func (r *PgRepository) GetByID(ctx context.Context, id string) (*domain.Question
 	return &qu, nil
 }
 
-// List queries questions by filter and attaches their options.
 func (r *PgRepository) List(ctx context.Context, f domain.ListFilter) ([]domain.Question, error) {
 	const base = `SELECT id, topic_id, type, stem, difficulty, explanation FROM question WHERE topic_id = $1`
 	args := []any{f.TopicID}
@@ -134,7 +126,6 @@ func (r *PgRepository) List(ctx context.Context, f domain.ListFilter) ([]domain.
 	return questions, nil
 }
 
-// loadOptions fetches options for many questions in one query (avoids N+1).
 func (r *PgRepository) loadOptions(ctx context.Context, questionIDs []string) (map[string][]domain.AnswerOption, error) {
 	const q = `
 		SELECT id, question_id, text, is_correct, order_index

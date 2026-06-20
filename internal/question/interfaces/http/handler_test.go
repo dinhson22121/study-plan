@@ -60,7 +60,7 @@ func TestGetQuestion_StudentDoesNotSeeAnswers(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("want 200, got %d", w.Code)
 	}
-	// Raw body must not leak the correct-answer flag or explanation.
+
 	body := w.Body.String()
 	if contains(body, "is_correct") {
 		t.Fatalf("student response leaked is_correct: %s", body)

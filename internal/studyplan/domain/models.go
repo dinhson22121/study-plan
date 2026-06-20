@@ -1,5 +1,3 @@
-// Package domain defines the studyplan bounded context: a generated per-subject
-// learning plan made of weekly milestones, the generation algorithm, and ports.
 package domain
 
 import (
@@ -8,7 +6,6 @@ import (
 	shared "github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// Milestone is one week's worth of topics with a due date.
 type Milestone struct {
 	ID         string
 	WeekNumber int
@@ -16,8 +13,6 @@ type Milestone struct {
 	DueDate    time.Time
 }
 
-// StudyPlan is the aggregate root: an ordered set of weekly milestones covering
-// a subject's topics between now and the goal's target date.
 type StudyPlan struct {
 	ID         string
 	UserID     string
@@ -29,7 +24,6 @@ type StudyPlan struct {
 	CreatedAt  time.Time
 }
 
-// NewStudyPlan validates and constructs a plan.
 func NewStudyPlan(id, userID, subjectID, level string, start, target time.Time, milestones []Milestone, now time.Time) (*StudyPlan, error) {
 	if userID == "" {
 		return nil, shared.ErrValidation.WithMessage("user id is required")
@@ -46,7 +40,6 @@ func NewStudyPlan(id, userID, subjectID, level string, start, target time.Time, 
 	}, nil
 }
 
-// FirstMilestone returns the earliest milestone (week 1), or nil if none.
 func (p *StudyPlan) FirstMilestone() *Milestone {
 	if len(p.Milestones) == 0 {
 		return nil

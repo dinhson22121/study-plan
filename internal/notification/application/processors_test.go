@@ -17,8 +17,6 @@ func seedTemplate(repo *fakeRepo, code string) {
 	}
 }
 
-// --- ScheduleProcessor ---
-
 func TestScheduleProcessor_ResolvesTokenRendersAndProducesSend(t *testing.T) {
 	repo, pub := newFakeRepo(), &fakePublisher{}
 	_ = repo.UpsertDeviceToken(context.Background(), &domain.DeviceToken{UserID: "u1", Token: "tok", IsActive: true})
@@ -73,8 +71,6 @@ func TestScheduleProcessor_MissingTemplateRecordsFailed(t *testing.T) {
 	}
 }
 
-// --- SendProcessor ---
-
 func TestSendProcessor_SuccessProducesSentResult(t *testing.T) {
 	pub := &fakePublisher{}
 	p := NewSendProcessor(&fakeFCM{err: nil}, pub, zap.NewNop())
@@ -100,8 +96,6 @@ func TestSendProcessor_TokenInvalidProducesFailedResult(t *testing.T) {
 		t.Fatalf("expected FAILED/TOKEN_INVALID, got %+v", rm)
 	}
 }
-
-// --- ResultProcessor ---
 
 func TestResultProcessor_SentUpdatesLog(t *testing.T) {
 	repo, pub := newFakeRepo(), &fakePublisher{}

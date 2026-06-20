@@ -2,7 +2,6 @@ package domain
 
 import "time"
 
-// AchievementType enumerates the achievements that trigger a push.
 type AchievementType string
 
 const (
@@ -12,15 +11,12 @@ const (
 	AchievementPerfectScore   AchievementType = "PERFECT_SCORE"
 )
 
-// Streak-milestone thresholds.
 const (
 	streak7Days  = 7
 	streak30Days = 30
 	perfectScore = 100.0
 )
 
-// Achievement is a unlocked badge, recorded once per (user, type, ref) so the
-// push is not sent twice. Ref disambiguates (e.g. the topic id).
 type Achievement struct {
 	UserID     string
 	Type       AchievementType
@@ -28,10 +24,6 @@ type Achievement struct {
 	UnlockedAt time.Time
 }
 
-// DetectAchievements returns the achievements newly earned by a quiz attempt,
-// given the score, whether the topic just reached COMPLETED, and the streak
-// before/after the attempt. De-duplication against already-stored achievements
-// is the caller's responsibility.
 func DetectAchievements(userID, topicID string, score float64, justCompleted bool, streakBefore, streakAfter int, now time.Time) []Achievement {
 	var out []Achievement
 	add := func(t AchievementType, ref string) {

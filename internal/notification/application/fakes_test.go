@@ -10,12 +10,11 @@ import (
 	shared "github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// fakeRepo is an in-memory domain.Repository for application tests.
 type fakeRepo struct {
 	mu          sync.Mutex
-	tokens      map[string]string // userID -> active token
+	tokens      map[string]string
 	templates   map[string]*domain.NotificationTemplate
-	prefs       map[string]*domain.NotificationPreference // userID|type -> pref
+	prefs       map[string]*domain.NotificationPreference
 	logs        []*domain.NotificationLog
 	activeUsers []string
 	deactivated []string
@@ -138,7 +137,6 @@ func (r *fakeRepo) ListActiveUserIDs(_ context.Context) ([]string, error) {
 	return append([]string(nil), r.activeUsers...), nil
 }
 
-// helpers for tests
 func (r *fakeRepo) logsByStatus(s domain.NotificationStatus) int {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -151,7 +149,6 @@ func (r *fakeRepo) logsByStatus(s domain.NotificationStatus) int {
 	return n
 }
 
-// fakePublisher records every published message.
 type fakePublisher struct {
 	mu       sync.Mutex
 	messages []publishedMsg
@@ -192,7 +189,6 @@ func decode[T any](b []byte) T {
 	return v
 }
 
-// fakeIdem is an in-memory IdempotencyStore.
 type fakeIdem struct {
 	mu   sync.Mutex
 	seen map[string]bool
@@ -209,7 +205,6 @@ func (i *fakeIdem) CheckAndSet(_ context.Context, key string, _ time.Duration) (
 	return true, nil
 }
 
-// fakeFCM returns a configurable error.
 type fakeFCM struct {
 	err   error
 	calls int

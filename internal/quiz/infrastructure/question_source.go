@@ -1,5 +1,3 @@
-// Package infrastructure provides the quiz adapters: the question-bank source
-// and the Postgres repository.
 package infrastructure
 
 import (
@@ -9,18 +7,14 @@ import (
 	"github.com/son-ngo/edu-app/internal/quiz/domain"
 )
 
-// QuestionSourceAdapter implements quiz's QuestionSource over the question
-// service. Quizzes are topic-scoped, so it reads the bank by topic directly.
 type QuestionSourceAdapter struct {
 	questions *questionapp.Service
 }
 
-// NewQuestionSourceAdapter builds the adapter.
 func NewQuestionSourceAdapter(questions *questionapp.Service) *QuestionSourceAdapter {
 	return &QuestionSourceAdapter{questions: questions}
 }
 
-// SampleForTopic returns up to limit question ids for the topic.
 func (a *QuestionSourceAdapter) SampleForTopic(ctx context.Context, topicID string, limit int) ([]string, error) {
 	qs, err := a.questions.List(ctx, topicID, "", limit)
 	if err != nil {
@@ -33,8 +27,6 @@ func (a *QuestionSourceAdapter) SampleForTopic(ctx context.Context, topicID stri
 	return ids, nil
 }
 
-// Details returns correct options + explanation per question id for grading and
-// the post-submit review.
 func (a *QuestionSourceAdapter) Details(ctx context.Context, questionIDs []string) (map[string]domain.QuestionDetail, error) {
 	out := make(map[string]domain.QuestionDetail, len(questionIDs))
 	for _, id := range questionIDs {

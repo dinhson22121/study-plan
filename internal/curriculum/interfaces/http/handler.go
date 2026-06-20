@@ -1,5 +1,3 @@
-// Package curriculumhttp exposes the curriculum catalog over HTTP (Gin). Reads
-// require authentication; writes require the ADMIN role.
 package curriculumhttp
 
 import (
@@ -11,18 +9,15 @@ import (
 	"github.com/son-ngo/edu-app/internal/shared/middleware"
 )
 
-// Handler adapts HTTP requests to the curriculum service.
 type Handler struct {
 	svc      *application.Service
 	validate middleware.TokenValidator
 }
 
-// NewHandler builds the handler.
 func NewHandler(svc *application.Service, validate middleware.TokenValidator) *Handler {
 	return &Handler{svc: svc, validate: validate}
 }
 
-// Routes mounts the curriculum endpoints under /curriculum.
 func (h *Handler) Routes(rg *gin.RouterGroup) {
 	auth := middleware.Auth(h.validate)
 	admin := middleware.RequireRole(middleware.RoleAdmin)

@@ -1,6 +1,3 @@
-// Package domain defines the user bounded context: the User profile aggregate
-// and its repository port. Identity/credentials live in the auth context; this
-// context owns profile data only.
 package domain
 
 import (
@@ -11,7 +8,6 @@ import (
 	shared "github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// User is the profile aggregate. ID equals the identity created by auth.
 type User struct {
 	ID          string
 	Email       string
@@ -20,8 +16,6 @@ type User struct {
 	UpdatedAt   time.Time
 }
 
-// NewUser builds a profile, deriving a default display name from the email local
-// part when none is supplied.
 func NewUser(id, email, displayName string, now time.Time) (*User, error) {
 	if id == "" {
 		return nil, shared.ErrValidation.WithMessage("user id required")
@@ -35,8 +29,6 @@ func NewUser(id, email, displayName string, now time.Time) (*User, error) {
 	return &User{ID: id, Email: email, DisplayName: displayName, CreatedAt: now, UpdatedAt: now}, nil
 }
 
-// Rename returns a new User with an updated display name and timestamp
-// (immutable update — the receiver is not mutated).
 func (u User) Rename(displayName string, now time.Time) (*User, error) {
 	if strings.TrimSpace(displayName) == "" {
 		return nil, shared.ErrValidation.WithMessage("display name cannot be empty")
@@ -53,7 +45,6 @@ func deriveDisplayName(email string) string {
 	return email
 }
 
-// Repository persists and retrieves user profiles.
 type Repository interface {
 	Create(ctx context.Context, u *User) error
 	FindByID(ctx context.Context, id string) (*User, error)

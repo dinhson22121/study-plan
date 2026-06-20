@@ -1,5 +1,3 @@
-// Package application contains the quiz use cases: starting a quiz, grading a
-// submission (with review), and reading results.
 package application
 
 import (
@@ -12,10 +10,8 @@ import (
 	shared "github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// defaultNumQuestions is the quiz length when the caller does not specify one.
 const defaultNumQuestions = 10
 
-// Service implements the quiz use cases.
 type Service struct {
 	repo   domain.Repository
 	source domain.QuestionSource
@@ -24,12 +20,10 @@ type Service struct {
 	newID  func() string
 }
 
-// NewService builds the service.
 func NewService(repo domain.Repository, source domain.QuestionSource, bus domain.EventPublisher) *Service {
 	return &Service{repo: repo, source: source, bus: bus, now: time.Now, newID: uuid.NewString}
 }
 
-// StartQuiz assembles a quiz for a topic from the question bank.
 func (s *Service) StartQuiz(ctx context.Context, userID, topicID string, numQuestions int) (*domain.QuizSession, error) {
 	if numQuestions <= 0 {
 		numQuestions = defaultNumQuestions
@@ -48,14 +42,11 @@ func (s *Service) StartQuiz(ctx context.Context, userID, topicID string, numQues
 	return session, nil
 }
 
-// AnswerInput is one submitted answer.
 type AnswerInput struct {
 	QuestionID string
 	OptionID   string
 }
 
-// SubmitQuiz grades a session, stores the result, marks it complete, publishes
-// QuizCompletedEvent, and returns the result with the review revealed.
 func (s *Service) SubmitQuiz(ctx context.Context, sessionID, userID string, answers []AnswerInput) (*domain.QuizResult, error) {
 	session, err := s.repo.GetSession(ctx, sessionID)
 	if err != nil {
@@ -90,12 +81,10 @@ func (s *Service) SubmitQuiz(ctx context.Context, sessionID, userID string, answ
 	return &result, nil
 }
 
-// GetResult returns the result for a completed session, scoped to the owner.
 func (s *Service) GetResult(ctx context.Context, sessionID, userID string) (*domain.QuizResult, error) {
 	return s.repo.GetResultForUser(ctx, sessionID, userID)
 }
 
-// ListResults returns a user's quiz results.
 func (s *Service) ListResults(ctx context.Context, userID string) ([]domain.QuizResult, error) {
 	return s.repo.ListResultsByUser(ctx, userID)
 }

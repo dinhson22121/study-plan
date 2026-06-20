@@ -42,7 +42,6 @@ func (r *memRepo) Update(_ context.Context, u *userdomain.User) error {
 	return nil
 }
 
-// validatorFor returns a TokenValidator that accepts "valid-<userID>" tokens.
 func validatorFor() middleware.TokenValidator {
 	return func(token string) (*middleware.Claims, error) {
 		if len(token) > 6 && token[:6] == "valid-" {
@@ -112,7 +111,7 @@ func TestUpdateMe_ValidationError(t *testing.T) {
 	_ = repo.Create(context.Background(), u)
 	r := newRouter(repo)
 
-	b, _ := json.Marshal(gin.H{}) // missing display_name
+	b, _ := json.Marshal(gin.H{})
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/users/me", bytes.NewReader(b))
 	req.Header.Set("Authorization", "Bearer valid-u1")
 	req.Header.Set("Content-Type", "application/json")

@@ -1,6 +1,3 @@
-// Package domain defines the goal bounded context: a student's learning goal
-// captured during onboarding — target school/major, study time, and per-subject
-// current/target scores — plus the repository port.
 package domain
 
 import (
@@ -13,18 +10,16 @@ import (
 
 const (
 	minScore       = 0.0
-	maxScore       = 10.0 // Vietnamese 0–10 grading scale
+	maxScore       = 10.0
 	maxDaysPerWeek = 7
 )
 
-// SubjectTarget is the current and target score for one subject.
 type SubjectTarget struct {
 	SubjectID    string
 	CurrentScore float64
 	TargetScore  float64
 }
 
-// Goal is the aggregate root: one learning goal per user, set in onboarding.
 type Goal struct {
 	UserID           string
 	TargetUniversity string
@@ -37,7 +32,6 @@ type Goal struct {
 	UpdatedAt        time.Time
 }
 
-// NewGoal validates and constructs a goal.
 func NewGoal(userID, university, major string, targetDate time.Time, hoursPerDay, daysPerWeek int, subjects []SubjectTarget, now time.Time) (*Goal, error) {
 	if userID == "" {
 		return nil, shared.ErrValidation.WithMessage("user id is required")
@@ -88,8 +82,6 @@ func validateSubjectTarget(s SubjectTarget) error {
 	return nil
 }
 
-// WeeksUntilTarget returns the number of study weeks from now until the target
-// date, rounded up so the plan covers the full window, with a minimum of 1.
 func (g *Goal) WeeksUntilTarget(now time.Time) int {
 	weeks := int(math.Ceil(g.TargetDate.Sub(now).Hours() / (24 * 7)))
 	if weeks < 1 {

@@ -1,4 +1,4 @@
-.PHONY: help up down logs build run test test-integration cover migrate-up migrate-down migrate-version lint tidy
+.PHONY: help up down logs build run test test-integration cover migrate-up migrate-down migrate-version lint tidy deploy deploy-down deploy-logs docker-build
 
 # Local infra connection strings (override as needed).
 export EDU_POSTGRES_URL ?= postgres://eduapp:secret@localhost:5432/eduapp?sslmode=disable
@@ -9,14 +9,28 @@ export EDU_JWT_SECRET   ?= dev-only-change-me
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
-up: ## Start Postgres, Redis, Kafka
-	docker compose up -d
+up: ## Start infra only (Postgres, Redis, Kafka) for local `make run`
+	docker compose up -d postgres redis kafka
 
-down: ## Stop and remove infra containers
+down: ## Stop and remove all containers
 	docker compose down
 
 logs: ## Tail infra logs
-	docker compose logs -f
+	docker compose logs -f postgres redis kafka
+
+## ---- Self-hosted deploy (app + migrations + infra in containers) ----
+
+deploy: ## Build and run the full stack (app on :8080, migrations auto-applied)
+	docker compose up -d --build
+
+deploy-down: ## Stop the full stack (add `-v` manually to drop data)
+	docker compose down
+
+deploy-logs: ## Tail the app container logs
+	docker compose logs -f app
+
+docker-build: ## Build the app image only
+	docker build -t edu-app:latest .
 
 build: ## Compile all packages
 	go build ./...

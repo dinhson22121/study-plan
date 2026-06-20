@@ -1,5 +1,3 @@
-// Package application contains the placement use cases: starting a test,
-// submitting/grading it, and reading results.
 package application
 
 import (
@@ -12,11 +10,8 @@ import (
 	shared "github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// defaultNumQuestions is the test length when the caller does not specify one
-// (20 questions per subject, per the app design).
 const defaultNumQuestions = 20
 
-// Service implements the placement use cases.
 type Service struct {
 	repo   domain.Repository
 	source domain.QuestionSource
@@ -25,12 +20,10 @@ type Service struct {
 	newID  func() string
 }
 
-// NewService builds the service.
 func NewService(repo domain.Repository, source domain.QuestionSource, bus domain.EventPublisher) *Service {
 	return &Service{repo: repo, source: source, bus: bus, now: time.Now, newID: uuid.NewString}
 }
 
-// StartTest assembles a placement test for a subject from the question bank.
 func (s *Service) StartTest(ctx context.Context, userID, subjectID string, numQuestions int) (*domain.PlacementTest, error) {
 	if numQuestions <= 0 {
 		numQuestions = defaultNumQuestions
@@ -49,14 +42,11 @@ func (s *Service) StartTest(ctx context.Context, userID, subjectID string, numQu
 	return test, nil
 }
 
-// AnswerInput is one submitted answer.
 type AnswerInput struct {
 	QuestionID string
 	OptionID   string
 }
 
-// SubmitTest grades a test, stores the result with the assessed level, marks the
-// test complete, and publishes PlacementCompletedEvent.
 func (s *Service) SubmitTest(ctx context.Context, testID, userID string, answers []AnswerInput) (*domain.PlacementResult, error) {
 	test, err := s.repo.GetTest(ctx, testID)
 	if err != nil {
@@ -96,13 +86,10 @@ func (s *Service) SubmitTest(ctx context.Context, testID, userID string, answers
 	return result, nil
 }
 
-// ListResults returns a user's placement results.
 func (s *Service) ListResults(ctx context.Context, userID string) ([]domain.PlacementResult, error) {
 	return s.repo.ListResults(ctx, userID)
 }
 
-// LatestResult returns the most recent result for a user+subject (used by
-// studyplan to seed plan generation with the assessed level).
 func (s *Service) LatestResult(ctx context.Context, userID, subjectID string) (*domain.PlacementResult, error) {
 	return s.repo.LatestResult(ctx, userID, subjectID)
 }

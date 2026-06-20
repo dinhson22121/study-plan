@@ -107,7 +107,7 @@ func TestHandleQuizCompleted_UpdatesMasteryAndStreak(t *testing.T) {
 	if repo.streaks["u1"].CurrentStreak != 1 {
 		t.Fatalf("streak not started")
 	}
-	// 90% completes the topic -> TOPIC_COMPLETED push (not perfect).
+
 	if len(notifier.pushes) != 1 || notifier.pushes[0]["topic"] != "Logarit" {
 		t.Fatalf("expected 1 topic-completed push, got %+v", notifier.pushes)
 	}
@@ -118,7 +118,7 @@ func TestHandleQuizCompleted_PerfectScoreTwoAchievements(t *testing.T) {
 	svc := newService(repo, notifier, time.Date(2026, 1, 1, 9, 0, 0, 0, time.UTC))
 
 	_ = svc.HandleQuizCompleted(context.Background(), completed("u1", "t1", 100))
-	// TOPIC_COMPLETED + PERFECT_SCORE
+
 	if len(notifier.pushes) != 2 {
 		t.Fatalf("expected 2 pushes for perfect first completion, got %d", len(notifier.pushes))
 	}
@@ -131,7 +131,7 @@ func TestHandleQuizCompleted_AchievementsAwardedOnce(t *testing.T) {
 
 	_ = svc.HandleQuizCompleted(context.Background(), completed("u1", "t1", 100))
 	pushesAfterFirst := len(notifier.pushes)
-	// Re-take same topic same day: no new TOPIC_COMPLETED/PERFECT pushes.
+
 	_ = svc.HandleQuizCompleted(context.Background(), completed("u1", "t1", 100))
 	if len(notifier.pushes) != pushesAfterFirst {
 		t.Fatalf("achievements should not be awarded twice; pushes %d -> %d", pushesAfterFirst, len(notifier.pushes))

@@ -1,5 +1,3 @@
-// Package contenthttp exposes lessons/content over HTTP (Gin). Authoring is
-// ADMIN-only; reads are authenticated.
 package contenthttp
 
 import (
@@ -11,18 +9,15 @@ import (
 	"github.com/son-ngo/edu-app/internal/shared/middleware"
 )
 
-// Handler adapts HTTP requests to the content service.
 type Handler struct {
 	svc      *application.Service
 	validate middleware.TokenValidator
 }
 
-// NewHandler builds the handler.
 func NewHandler(svc *application.Service, validate middleware.TokenValidator) *Handler {
 	return &Handler{svc: svc, validate: validate}
 }
 
-// Routes mounts the content endpoints.
 func (h *Handler) Routes(rg *gin.RouterGroup) {
 	auth := middleware.Auth(h.validate)
 	g := rg.Group("", auth)

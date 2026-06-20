@@ -25,15 +25,15 @@ func TestNewQuestion_MCQHappyPath(t *testing.T) {
 }
 
 func TestNewQuestion_MCQValidation(t *testing.T) {
-	// fewer than two options
+
 	if _, err := NewQuestion("id", "t", TypeMCQ, "s", DifficultyEasy, "", []AnswerOption{{ID: "o", Text: "A", IsCorrect: true}}); !errors.Is(err, shared.ErrValidation) {
 		t.Fatalf("expected error for <2 options")
 	}
-	// no correct option
+
 	if _, err := NewQuestion("id", "t", TypeMCQ, "s", DifficultyEasy, "", mcqOptions(-1)); !errors.Is(err, shared.ErrValidation) {
 		t.Fatalf("expected error for no correct option")
 	}
-	// empty option text
+
 	bad := []AnswerOption{{ID: "o1", Text: "", IsCorrect: true}, {ID: "o2", Text: "B"}}
 	if _, err := NewQuestion("id", "t", TypeMCQ, "s", DifficultyEasy, "", bad); !errors.Is(err, shared.ErrValidation) {
 		t.Fatalf("expected error for empty option text")

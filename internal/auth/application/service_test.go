@@ -13,8 +13,6 @@ import (
 	"github.com/son-ngo/edu-app/internal/shared/eventbus"
 )
 
-// --- in-memory fakes for the auth ports ---
-
 type fakeRepo struct {
 	byEmail  map[string]*authdomain.UserCredential
 	byUserID map[string]*authdomain.UserCredential
@@ -107,8 +105,6 @@ func newTestService(t *testing.T) (*Service, *fakeRepo, *fakeRefreshStore, *even
 	return svc, repo, store, bus
 }
 
-// --- tests ---
-
 func TestRegister_CreatesCredentialPublishesEventAndReturnsTokens(t *testing.T) {
 	svc, repo, store, bus := newTestService(t)
 	var gotEvent *authdomain.UserRegisteredEvent
@@ -199,7 +195,7 @@ func TestRefresh_RotatesAndRevokesOldToken(t *testing.T) {
 	if newPair.RefreshToken == pair.RefreshToken {
 		t.Fatalf("refresh token should rotate")
 	}
-	// Old token must now be revoked: reusing it fails.
+
 	if _, err := svc.Refresh(context.Background(), pair.RefreshToken); !errors.Is(err, domain.ErrUnauthorized) {
 		t.Fatalf("expected reused old refresh token to be rejected, got %v", err)
 	}

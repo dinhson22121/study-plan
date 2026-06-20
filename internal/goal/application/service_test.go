@@ -79,7 +79,7 @@ func TestSetGoal_IsUpsert(t *testing.T) {
 func TestSetGoal_ValidationPropagates(t *testing.T) {
 	svc := newService(newFakeRepo())
 	in := validInput()
-	in.TargetDate = fixedNow().Add(-time.Hour) // past
+	in.TargetDate = fixedNow().Add(-time.Hour)
 	if _, err := svc.SetGoal(context.Background(), in); !errors.Is(err, shared.ErrValidation) {
 		t.Fatalf("expected validation error, got %v", err)
 	}

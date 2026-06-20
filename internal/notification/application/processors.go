@@ -13,7 +13,6 @@ import (
 	shared "github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// publishJSON is a small helper shared by the processors.
 func publishJSON(ctx context.Context, pub domain.Publisher, topic, key string, payload any) error {
 	b, err := json.Marshal(payload)
 	if err != nil {
@@ -25,10 +24,6 @@ func publishJSON(ctx context.Context, pub domain.Publisher, topic, key string, p
 	return nil
 }
 
-// ScheduleProcessor consumes notification.schedule: it resolves the user's
-// active device token, renders the template, records a PENDING log, and produces
-// a notification.send message. Unresolvable cases (no token, bad template) are
-// recorded as FAILED logs and do not produce a send.
 type ScheduleProcessor struct {
 	repo  domain.Repository
 	pub   domain.Publisher
@@ -37,12 +32,10 @@ type ScheduleProcessor struct {
 	newID func() string
 }
 
-// NewScheduleProcessor builds the processor.
 func NewScheduleProcessor(repo domain.Repository, pub domain.Publisher, log *zap.Logger) *ScheduleProcessor {
 	return &ScheduleProcessor{repo: repo, pub: pub, log: log, now: time.Now, newID: uuid.NewString}
 }
 
-// Process handles one schedule message.
 func (p *ScheduleProcessor) Process(ctx context.Context, msg domain.ScheduleMessage) error {
 	logID := p.newID()
 
@@ -94,8 +87,6 @@ func (p *ScheduleProcessor) recordFailed(ctx context.Context, logID string, msg 
 	return p.repo.SaveLog(ctx, failed)
 }
 
-// SendProcessor consumes notification.send: it pushes via FCM (the adapter owns
-// retry/backoff) and produces a notification.result.
 type SendProcessor struct {
 	fcm domain.FCMPort
 	pub domain.Publisher
@@ -103,12 +94,10 @@ type SendProcessor struct {
 	now func() time.Time
 }
 
-// NewSendProcessor builds the processor.
 func NewSendProcessor(fcm domain.FCMPort, pub domain.Publisher, log *zap.Logger) *SendProcessor {
 	return &SendProcessor{fcm: fcm, pub: pub, log: log, now: time.Now}
 }
 
-// Process handles one send message.
 func (p *SendProcessor) Process(ctx context.Context, msg domain.SendMessage) error {
 	result := domain.ResultMessage{CorrelationID: msg.CorrelationID, LogID: msg.LogID}
 
@@ -131,20 +120,16 @@ func (p *SendProcessor) Process(ctx context.Context, msg domain.SendMessage) err
 	return publishJSON(ctx, p.pub, domain.TopicResult, msg.LogID, result)
 }
 
-// ResultProcessor consumes notification.result: it updates the delivery log and
-// routes terminal failures to the dead-letter queue for manual review.
 type ResultProcessor struct {
 	repo domain.Repository
 	pub  domain.Publisher
 	log  *zap.Logger
 }
 
-// NewResultProcessor builds the processor.
 func NewResultProcessor(repo domain.Repository, pub domain.Publisher, log *zap.Logger) *ResultProcessor {
 	return &ResultProcessor{repo: repo, pub: pub, log: log}
 }
 
-// Process handles one result message.
 func (p *ResultProcessor) Process(ctx context.Context, msg domain.ResultMessage) error {
 	if msg.Status == string(domain.StatusSent) {
 		var sentAt *time.Time
@@ -154,7 +139,6 @@ func (p *ResultProcessor) Process(ctx context.Context, msg domain.ResultMessage)
 		return p.repo.UpdateLogStatus(ctx, msg.LogID, domain.StatusSent, sentAt, "")
 	}
 
-	// Failed: record and dead-letter for manual review.
 	if err := p.repo.UpdateLogStatus(ctx, msg.LogID, domain.StatusFailed, nil, msg.ErrorCode); err != nil {
 		return err
 	}

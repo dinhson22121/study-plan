@@ -117,7 +117,6 @@ func TestSubmitTest_GradesAndPublishesEvent(t *testing.T) {
 	svc := newService(repo, src, bus)
 	test, _ := svc.StartTest(context.Background(), "u1", "s1", 4)
 
-	// 3/4 correct = 75% -> INTERMEDIATE
 	result, err := svc.SubmitTest(context.Background(), test.ID, "u1", []AnswerInput{
 		{QuestionID: "q1", OptionID: "a"},
 		{QuestionID: "q2", OptionID: "b"},

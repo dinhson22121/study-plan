@@ -9,7 +9,6 @@ import (
 	"github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// stubEvent is a minimal DomainEvent for testing the bus.
 type stubEvent struct {
 	name string
 	agg  string
@@ -20,7 +19,7 @@ func (s stubEvent) OccurredAt() time.Time { return time.Unix(0, 0) }
 func (s stubEvent) AggregateID() string   { return s.agg }
 
 func TestBus_PublishInvokesSubscribedHandlersInOrder(t *testing.T) {
-	// Arrange
+
 	bus := New()
 	var order []string
 	bus.Subscribe("user.registered", func(_ context.Context, _ domain.DomainEvent) error {
@@ -32,10 +31,8 @@ func TestBus_PublishInvokesSubscribedHandlersInOrder(t *testing.T) {
 		return nil
 	})
 
-	// Act
 	err := bus.Publish(context.Background(), stubEvent{name: "user.registered", agg: "u1"})
 
-	// Assert
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

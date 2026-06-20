@@ -25,7 +25,6 @@ func TestGenerateMilestones_EvenDistribution(t *testing.T) {
 	start := time.Unix(1_700_000_000, 0).UTC()
 	ms := GenerateMilestones(topicList(10), 4, start, seqID())
 
-	// ceil(10/4)=3 per week -> chunks of 3,3,3,1 = 4 milestones
 	if len(ms) != 4 {
 		t.Fatalf("expected 4 milestones, got %d", len(ms))
 	}

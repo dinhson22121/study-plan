@@ -50,6 +50,61 @@ Configuration is read from `config/config.yaml`, overridable by `EDU_*` env vars
 (e.g. `EDU_POSTGRES_URL`, `EDU_JWT_SECRET`, `EDU_KAFKA_BROKERS`). The Makefile
 exports sensible local defaults.
 
+## Self-hosted deploy (Docker)
+
+The whole stack — Postgres, Redis, Kafka, **the app**, and a one-shot migration
+job — runs from `docker-compose.yml` with the multi-stage [`Dockerfile`](Dockerfile):
+
+```bash
+# Build the image, start infra, auto-apply migrations, then start the API.
+EDU_JWT_SECRET=$(openssl rand -hex 32) make deploy
+
+curl localhost:8080/health
+make deploy-logs   # tail app logs
+make deploy-down   # stop (add `docker compose down -v` to drop data)
+```
+
+`make deploy` runs `docker compose up -d --build`. Startup order is enforced:
+`postgres/redis/kafka` become healthy → the `migrate` job applies all migrations →
+the `app` starts and provisions Kafka topics. Override secrets/URLs via the
+environment or a `.env` file (the compose `x-app-env` block has the defaults).
+
+**Notes**
+- Set a real `EDU_JWT_SECRET` — the compose default is a placeholder.
+- For real FCM push, drop `config/firebase-service-account.json` beside the
+  compose file and uncomment the volume mount under the `app` service; otherwise
+  a logging fallback sender is used.
+- Kafka advertises two listeners: `kafka:29092` (in-network, used by the app) and
+  `localhost:9092` (host tools).
+
+## Admin upload & PDF parsing
+
+Admins upload exam PDFs straight to object storage (S3/MinIO) via presigned URLs;
+a Python worker parses them into reviewable question drafts:
+
+```
+POST /admin/uploads/init      → presigned PUT URL (+ asset record, PENDING)
+   (client PUTs the PDF directly to S3/MinIO)
+POST /admin/uploads/complete  → verify object (HEAD: size/content-type, optional checksum) →
+                                 asset UPLOADED → queue parse_job
+   workers/pdf_parser          → claim job (FOR UPDATE SKIP LOCKED) → extract text →
+                                 parse MCQ → write question_draft(+options)
+POST /admin/uploads/:id/link               → link asset to QUESTION / EXAM / CONTENT
+GET  /admin/uploads/:id/draft-questions     → review
+PUT  /admin/question-drafts/:id[/options/:optionId]  → edit
+POST /admin/question-drafts/:id/publish     → promote to a real Question
+POST /admin/uploads/:id/publish            → publish all pending drafts for the asset
+```
+
+- Storage: S3-compatible; **MinIO** in local dev (config `EDU_S3_*`, default bucket
+  `edu-assets`, 20 MB limit, `application/pdf` only).
+- The **worker** is a separate runtime (`workers/pdf_parser`, Python + PyMuPDF +
+  psycopg) — runs as the `worker` service in compose, or standalone (see its README).
+- MVP: text-based PDFs, MCQ only; partial parses are marked `REVIEW_REQUIRED`;
+  nothing is published without admin review. All endpoints are ADMIN-only.
+
+`make deploy` brings up MinIO + a bucket-init job + the worker alongside the API.
+
 ## Testing
 
 ```bash

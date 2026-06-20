@@ -1,10 +1,5 @@
 //go:build integration
 
-// Integration tests for the studyplan Postgres repository. Run with:
-//
-//	make migrate-up && go test -tags=integration ./internal/studyplan/...
-//
-// Requires EDU_TEST_POSTGRES_URL; skips if unset.
 package infrastructure
 
 import (
@@ -34,8 +29,6 @@ func testPool(t *testing.T) *pgxpool.Pool {
 	return pool
 }
 
-// seedTopics creates user, subject, chapter and n topics; returns user id,
-// subject id, and topic ids (satisfying studyplan FKs).
 func seedTopics(t *testing.T, pool *pgxpool.Pool, n int) (userID, subjectID string, topicIDs []string) {
 	t.Helper()
 	ctx := context.Background()

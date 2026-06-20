@@ -1,10 +1,5 @@
 //go:build integration
 
-// Integration tests for the question Postgres repository. Run with:
-//
-//	make migrate-up && go test -tags=integration ./internal/question/...
-//
-// Requires EDU_TEST_POSTGRES_URL; skips if unset.
 package infrastructure
 
 import (
@@ -35,8 +30,6 @@ func testPool(t *testing.T) *pgxpool.Pool {
 	return pool
 }
 
-// seedTopic inserts a subject -> chapter -> topic chain via raw SQL and returns
-// the topic id, satisfying question's FK.
 func seedTopic(t *testing.T, pool *pgxpool.Pool) string {
 	t.Helper()
 	subjectID, chapterID, topicID := uuid.NewString(), uuid.NewString(), uuid.NewString()

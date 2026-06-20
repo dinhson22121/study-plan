@@ -1,10 +1,5 @@
 //go:build integration
 
-// Integration tests for the curriculum Postgres repository. Run with:
-//
-//	make migrate-up && go test -tags=integration ./internal/curriculum/...
-//
-// Requires EDU_TEST_POSTGRES_URL; skips if unset.
 package infrastructure
 
 import (

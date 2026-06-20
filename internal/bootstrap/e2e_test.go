@@ -1,14 +1,5 @@
 //go:build integration
 
-// End-to-end test driving the full student activity loop through the real HTTP
-// router over a real Postgres + Redis. Run with:
-//
-//	make migrate-up && go test -tags=integration ./internal/bootstrap/...
-//
-// Requires EDU_TEST_POSTGRES_URL and EDU_TEST_REDIS_URL. Kafka is not required:
-// achievement/reminder pushes go through Kafka best-effort and are allowed to
-// fail here; the synchronous in-process eventbus drives progress/analytics, which
-// is what this test asserts. Skips if the env vars are unset.
 package bootstrap
 
 import (
@@ -62,15 +53,13 @@ func e2eDeps(t *testing.T) *app.Deps {
 	cfg.Kafka.GroupID = "e2e"
 	cfg.Kafka.Partitions = 1
 
-	kc := kafka.NewClient([]string{"localhost:9092"}) // not started; pushes are best-effort
+	kc := kafka.NewClient([]string{"localhost:9092"})
 	return &app.Deps{
 		Cfg: cfg, DB: db, Redis: rdb, Kafka: kc, Producer: kc.NewProducer(),
 		Bus: eventbus.New(), Log: zap.NewNop(),
 	}
 }
 
-// seedCatalog inserts a subject/chapter/topic with n single-correct MCQs and
-// returns the subject id, topic id, and a map of question id -> correct option id.
 func seedCatalog(t *testing.T, deps *app.Deps, n int) (subjectID, topicID string, correct map[string]string) {
 	t.Helper()
 	ctx := context.Background()
@@ -95,7 +84,6 @@ func seedCatalog(t *testing.T, deps *app.Deps, n int) (subjectID, topicID string
 	return subjectID, topicID, correct
 }
 
-// client issues authenticated JSON requests against the router.
 type client struct {
 	t      *testing.T
 	router *gin.Engine
@@ -133,7 +121,6 @@ func TestE2E_StudentActivityLoop(t *testing.T) {
 
 	c := &client{t: t, router: router}
 
-	// Register a student (also seeds profile + notification preferences via events).
 	email := uuid.NewString() + "@e2e.test"
 	reg := c.do(http.MethodPost, "/api/v1/auth/register", gin.H{"email": email, "password": "password1"})
 	c.token = reg["data"].(map[string]any)["access_token"].(string)
@@ -141,7 +128,6 @@ func TestE2E_StudentActivityLoop(t *testing.T) {
 		t.Fatal("no access token from register")
 	}
 
-	// Set a goal, then generate a study plan for the subject.
 	c.do(http.MethodPut, "/api/v1/goals", gin.H{
 		"target_university": "HUST", "target_major": "CNTT",
 		"target_date":   time.Now().Add(60 * 24 * time.Hour).Format(time.RFC3339),
@@ -153,7 +139,6 @@ func TestE2E_StudentActivityLoop(t *testing.T) {
 		t.Fatalf("expected study plan milestones, got %v", plan["data"])
 	}
 
-	// Take a quiz on the topic and answer everything correctly.
 	start := c.do(http.MethodPost, "/api/v1/quizzes", gin.H{"topic_id": topicID})
 	data := start["data"].(map[string]any)
 	quizID := data["id"].(string)
@@ -167,14 +152,12 @@ func TestE2E_StudentActivityLoop(t *testing.T) {
 		t.Fatalf("expected score 100, got %v", score)
 	}
 
-	// Progress should reflect the mastered topic and a streak of 1.
 	prog := c.do(http.MethodGet, "/api/v1/progress", nil)
 	pd := prog["data"].(map[string]any)
 	if pd["topics_completed"].(float64) != 1 || pd["current_streak"].(float64) != 1 {
 		t.Fatalf("unexpected progress: %v", pd)
 	}
 
-	// Analytics dashboard should show the quiz average and completion.
 	dash := c.do(http.MethodGet, "/api/v1/analytics/me", nil)
 	dd := dash["data"].(map[string]any)
 	if dd["quiz_average"].(float64) != 100 || dd["topics_completed"].(float64) != 1 {

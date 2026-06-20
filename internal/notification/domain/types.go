@@ -1,11 +1,7 @@
-// Package domain defines the notification bounded context: device tokens,
-// templates, preferences, the delivery log aggregate, the Kafka message
-// schemas, and the ports the module depends on.
 package domain
 
 import shared "github.com/son-ngo/edu-app/internal/shared/domain"
 
-// NotificationType is a value object identifying a category of notification.
 type NotificationType string
 
 const (
@@ -17,7 +13,6 @@ const (
 	TypeAdminBroadcast NotificationType = "ADMIN_BROADCAST"
 )
 
-// AllTypes lists every notification type (used to seed default preferences).
 func AllTypes() []NotificationType {
 	return []NotificationType{
 		TypeDailyReminder, TypeWeeklyQuiz, TypeStudyPlan,
@@ -25,7 +20,6 @@ func AllTypes() []NotificationType {
 	}
 }
 
-// Valid reports whether t is a known notification type.
 func (t NotificationType) Valid() bool {
 	switch t {
 	case TypeDailyReminder, TypeWeeklyQuiz, TypeStudyPlan,
@@ -36,7 +30,6 @@ func (t NotificationType) Valid() bool {
 	}
 }
 
-// ParseType validates and returns a NotificationType.
 func ParseType(s string) (NotificationType, error) {
 	t := NotificationType(s)
 	if !t.Valid() {
@@ -45,7 +38,6 @@ func ParseType(s string) (NotificationType, error) {
 	return t, nil
 }
 
-// NotificationStatus is a value object for the delivery lifecycle state.
 type NotificationStatus string
 
 const (
@@ -56,7 +48,6 @@ const (
 	StatusSkipped  NotificationStatus = "SKIPPED"
 )
 
-// Platform is the device OS for a registered token.
 type Platform string
 
 const (
@@ -64,5 +55,4 @@ const (
 	PlatformIOS     Platform = "ios"
 )
 
-// Valid reports whether p is a supported platform.
 func (p Platform) Valid() bool { return p == PlatformAndroid || p == PlatformIOS }

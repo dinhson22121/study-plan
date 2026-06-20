@@ -8,15 +8,11 @@ import (
 	"github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// LoginInput is the login command payload.
 type LoginInput struct {
 	Email    string
 	Password string
 }
 
-// Login authenticates by email+password and returns a fresh token pair. It
-// returns ErrUnauthorized for both unknown email and wrong password so the
-// response does not reveal which accounts exist.
 func (s *Service) Login(ctx context.Context, in LoginInput) (authdomain.TokenPair, error) {
 	var zero authdomain.TokenPair
 

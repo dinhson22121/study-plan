@@ -1,6 +1,3 @@
-// Package domain defines the placement bounded context: a per-subject placement
-// test, its result and assessed level, and the grading rules. Questions are read
-// from the question bank via a port so this context stays decoupled.
 package domain
 
 import (
@@ -9,7 +6,6 @@ import (
 	shared "github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// Level is the assessed proficiency for a subject.
 type Level string
 
 const (
@@ -18,13 +14,11 @@ const (
 	LevelAdvanced     Level = "ADVANCED"
 )
 
-// Score thresholds (percent correct) for level assignment.
 const (
-	beginnerCeiling     = 40.0 // < 40%  -> BEGINNER
-	intermediateCeiling = 75.0 // <= 75% -> INTERMEDIATE, else ADVANCED
+	beginnerCeiling     = 40.0
+	intermediateCeiling = 75.0
 )
 
-// LevelFromScore maps a percent-correct score (0–100) to a level.
 func LevelFromScore(scorePct float64) Level {
 	switch {
 	case scorePct < beginnerCeiling:
@@ -36,7 +30,6 @@ func LevelFromScore(scorePct float64) Level {
 	}
 }
 
-// TestStatus is the lifecycle state of a placement test.
 type TestStatus string
 
 const (
@@ -44,8 +37,6 @@ const (
 	StatusCompleted  TestStatus = "COMPLETED"
 )
 
-// PlacementTest is the aggregate for one attempt: the snapshot of question ids a
-// student is asked to answer for a subject.
 type PlacementTest struct {
 	ID          string
 	UserID      string
@@ -55,7 +46,6 @@ type PlacementTest struct {
 	CreatedAt   time.Time
 }
 
-// NewPlacementTest validates and constructs an in-progress test.
 func NewPlacementTest(id, userID, subjectID string, questionIDs []string, now time.Time) (*PlacementTest, error) {
 	if userID == "" {
 		return nil, shared.ErrValidation.WithMessage("user id is required")
@@ -72,15 +62,11 @@ func NewPlacementTest(id, userID, subjectID string, questionIDs []string, now ti
 	}, nil
 }
 
-// Answer is a student's selected option for a question.
 type Answer struct {
 	QuestionID string
 	OptionID   string
 }
 
-// Grade scores answers against the correct-option sets. Only questions that are
-// part of the test count toward the total; an answer is correct when its option
-// is in that question's correct set. Returns the percent correct (0–100).
 func (t *PlacementTest) Grade(answers []Answer, correct map[string]map[string]bool) float64 {
 	if len(t.QuestionIDs) == 0 {
 		return 0
@@ -101,7 +87,6 @@ func (t *PlacementTest) Grade(answers []Answer, correct map[string]map[string]bo
 	return float64(got) / float64(len(t.QuestionIDs)) * 100.0
 }
 
-// PlacementResult is the outcome of a completed test.
 type PlacementResult struct {
 	ID          string
 	UserID      string

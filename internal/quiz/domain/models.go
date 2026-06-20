@@ -1,6 +1,3 @@
-// Package domain defines the quiz bounded context: a per-topic practice quiz
-// session, its graded result with per-question review, and the ports. Questions
-// are read from the question bank via a port to stay decoupled.
 package domain
 
 import (
@@ -9,11 +6,8 @@ import (
 	shared "github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// MasteryThreshold is the percent score at or above which a quiz is "passed"
-// and its topic counts as mastered.
 const MasteryThreshold = 80.0
 
-// TestStatus is the lifecycle state of a quiz session.
 type TestStatus string
 
 const (
@@ -21,7 +15,6 @@ const (
 	StatusCompleted  TestStatus = "COMPLETED"
 )
 
-// QuizSession is the aggregate for one quiz attempt over a topic.
 type QuizSession struct {
 	ID          string
 	UserID      string
@@ -31,7 +24,6 @@ type QuizSession struct {
 	CreatedAt   time.Time
 }
 
-// NewQuizSession validates and constructs an in-progress session.
 func NewQuizSession(id, userID, topicID string, questionIDs []string, now time.Time) (*QuizSession, error) {
 	if userID == "" {
 		return nil, shared.ErrValidation.WithMessage("user id is required")
@@ -48,20 +40,16 @@ func NewQuizSession(id, userID, topicID string, questionIDs []string, now time.T
 	}, nil
 }
 
-// Answer is a student's selected option for a question.
 type Answer struct {
 	QuestionID string
 	OptionID   string
 }
 
-// QuestionDetail is the grading/review data for one question, supplied by the
-// question-bank source.
 type QuestionDetail struct {
 	CorrectOptionIDs []string
 	Explanation      string
 }
 
-// QuestionReview is the post-submit feedback for one question.
 type QuestionReview struct {
 	QuestionID       string   `json:"question_id"`
 	SelectedOptionID string   `json:"selected_option_id"`
@@ -70,7 +58,6 @@ type QuestionReview struct {
 	Explanation      string   `json:"explanation"`
 }
 
-// QuizResult is the outcome of a graded session, including per-question review.
 type QuizResult struct {
 	SessionID    string
 	UserID       string
@@ -83,8 +70,6 @@ type QuizResult struct {
 	Reviews      []QuestionReview
 }
 
-// Grade scores the session's answers against question details and produces a
-// result with per-question review. Only questions in the session count.
 func (s *QuizSession) Grade(answers []Answer, details map[string]QuestionDetail, completedAt time.Time) QuizResult {
 	selected := make(map[string]string, len(answers))
 	for _, a := range answers {
