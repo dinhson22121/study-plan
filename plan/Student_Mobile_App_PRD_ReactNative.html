@@ -1,0 +1,355 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Student Mobile App PRD - React Native</title>
+<style>
+body{font-family:Arial,sans-serif;max-width:1300px;margin:auto;padding:30px;line-height:1.6}
+h1,h2,h3{color:#0f4c81}
+pre{background:#f4f4f4;padding:12px;border-radius:6px}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ccc;padding:8px}
+</style>
+</head>
+<body>
+
+<h1>AI Study Coach - Student Mobile App</h1>
+<h2>React Native Product Design Document</h2>
+
+<h2>1. Product Goal</h2>
+<p>
+Ứng dụng mobile dành cho học sinh THPT, giúp học sinh xây dựng lộ trình học tập cá nhân hóa,
+theo dõi tiến độ và cải thiện điểm thi THPT Quốc Gia.
+</p>
+
+<h2>2. Tech Stack</h2>
+
+<table>
+<tr><th>Component</th><th>Technology</th></tr>
+<tr><td>Framework</td><td>React Native</td></tr>
+<tr><td>Language</td><td>TypeScript</td></tr>
+<tr><td>Navigation</td><td>React Navigation</td></tr>
+<tr><td>State Management</td><td>Zustand</td></tr>
+<tr><td>API Client</td><td>Axios</td></tr>
+<tr><td>Push Notification</td><td>Firebase Cloud Messaging</td></tr>
+<tr><td>Storage</td><td>MMKV</td></tr>
+</table>
+
+<h2>3. App Architecture</h2>
+
+<pre>
+src
+├── modules
+│   ├── auth
+│   ├── onboarding
+│   ├── placement
+│   ├── dashboard
+│   ├── study-plan
+│   ├── topic
+│   ├── quiz
+│   ├── progress
+│   ├── notification
+│   └── profile
+│
+├── services
+├── store
+├── navigation
+├── components
+├── theme
+└── utils
+</pre>
+
+<h2>4. Primary Navigation</h2>
+
+<pre>
+Bottom Tabs
+
+Home
+Study Plan
+Quiz
+Progress
+Profile
+</pre>
+
+<h2>5. User Flow</h2>
+
+<pre>
+Splash
+   |
+Login
+   |
+Onboarding
+   |
+Placement Test
+   |
+Generate Study Plan
+   |
+Dashboard
+   |
+Study Topic
+   |
+Quiz
+   |
+Progress Tracking
+</pre>
+
+<h2>6. Screen Design</h2>
+
+<h3>6.1 Splash Screen</h3>
+<ul>
+<li>Logo</li>
+<li>Loading User Session</li>
+</ul>
+
+<h3>6.2 Login Screen</h3>
+<ul>
+<li>Login with Google</li>
+<li>Terms & Conditions</li>
+</ul>
+
+<h3>6.3 Onboarding Screen</h3>
+
+<p>Step 1 - Student Information</p>
+
+<ul>
+<li>Full Name</li>
+<li>School</li>
+<li>Province</li>
+<li>Grade</li>
+</ul>
+
+<p>Step 2 - Study Goal</p>
+
+<ul>
+<li>University Target</li>
+<li>Major Target</li>
+</ul>
+
+<p>Step 3 - Subjects</p>
+
+<ul>
+<li>Toán</li>
+<li>Tiếng Anh</li>
+<li>Lý</li>
+</ul>
+
+<p>Step 4 - Current Score</p>
+
+<ul>
+<li>Current Score</li>
+<li>Target Score</li>
+</ul>
+
+<p>Step 5 - Study Time</p>
+
+<ul>
+<li>Hours Per Day</li>
+<li>Days Per Week</li>
+</ul>
+
+<h2>7. Placement Test Flow</h2>
+
+<pre>
+Subject Selection
+       |
+Question 1
+Question 2
+Question 3
+...
+       |
+Submit
+       |
+Calculate Level
+</pre>
+
+<p>Recommended:</p>
+
+<ul>
+<li>20 Questions / Subject</li>
+<li>15-20 Minutes</li>
+</ul>
+
+<h2>8. Dashboard Design</h2>
+
+<p>Dashboard phải là màn hình mở app nhiều nhất.</p>
+
+<h3>Sections</h3>
+
+<ul>
+<li>Today's Tasks</li>
+<li>Current Streak</li>
+<li>Weekly Progress</li>
+<li>Upcoming Quiz</li>
+<li>Motivation Card</li>
+</ul>
+
+<pre>
+Hôm nay cần học
+
+✓ Logarit
+✓ 10 bài tập
+✓ Quiz nhanh
+
+Tiến độ tuần
+65%
+</pre>
+
+<h2>9. Study Plan Screen</h2>
+
+<pre>
+Week 1
+
+Toán
+ ├─ Khái niệm Log
+ ├─ Công thức Log
+
+Anh
+ ├─ Vocabulary
+ ├─ Reading
+</pre>
+
+<h3>Topic Status</h3>
+
+<ul>
+<li>Locked</li>
+<li>Available</li>
+<li>In Progress</li>
+<li>Completed</li>
+</ul>
+
+<h2>10. Topic Learning Screen</h2>
+
+<h3>Layout</h3>
+
+<ul>
+<li>Topic Header</li>
+<li>Learning Materials</li>
+<li>Practice Questions</li>
+<li>Quiz Button</li>
+</ul>
+
+<h3>Resources</h3>
+
+<ul>
+<li>PDF</li>
+<li>Slide</li>
+<li>Notes</li>
+</ul>
+
+<h2>11. Quiz Screen</h2>
+
+<pre>
+Question
+ |
+Options
+ |
+Next
+ |
+Submit
+</pre>
+
+<h3>Result</h3>
+
+<ul>
+<li>Score</li>
+<li>Correct Answers</li>
+<li>Wrong Answers</li>
+<li>Explanation</li>
+</ul>
+
+<h2>12. Progress Screen</h2>
+
+<h3>Metrics</h3>
+
+<ul>
+<li>Topic Completion</li>
+<li>Subject Completion</li>
+<li>Quiz Average</li>
+<li>Study Hours</li>
+</ul>
+
+<h2>13. Notification UX</h2>
+
+<h3>Daily Reminder</h3>
+
+<pre>
+Bạn còn 2 nhiệm vụ hôm nay.
+</pre>
+
+<h3>Weekly Reminder</h3>
+
+<pre>
+Bạn chưa hoàn thành Quiz tuần này.
+</pre>
+
+<h3>Achievement</h3>
+
+<pre>
+Chúc mừng!
+Bạn đã hoàn thành Logarit.
+</pre>
+
+<h2>14. Profile Screen</h2>
+
+<ul>
+<li>Avatar</li>
+<li>Study Goal</li>
+<li>Notification Settings</li>
+<li>Quiet Hours</li>
+<li>Logout</li>
+</ul>
+
+<h2>15. Design System</h2>
+
+<h3>Style</h3>
+
+<ul>
+<li>Clean</li>
+<li>Minimal</li>
+<li>Student Friendly</li>
+<li>No Dark Academic Feeling</li>
+</ul>
+
+<h3>Colors</h3>
+
+<ul>
+<li>Primary: Blue</li>
+<li>Success: Green</li>
+<li>Warning: Orange</li>
+<li>Error: Red</li>
+</ul>
+
+<h2>16. Requirements For Claude Design</h2>
+
+<p>
+Claude Design cần tập trung vào:
+</p>
+
+<ul>
+<li>Mobile-first</li>
+<li>High retention</li>
+<li>Gamification nhẹ</li>
+<li>Dashboard cực kỳ rõ ràng</li>
+<li>Study Plan dễ hiểu</li>
+<li>One-click vào bài học hôm nay</li>
+<li>Tối ưu cho học sinh lớp 12</li>
+</ul>
+
+<h2>17. MVP Screens</h2>
+
+<ol>
+<li>Splash</li>
+<li>Login</li>
+<li>Onboarding</li>
+<li>Placement Test</li>
+<li>Dashboard</li>
+<li>Study Plan</li>
+<li>Topic Learning</li>
+<li>Quiz</li>
+<li>Progress</li>
+<li>Profile</li>
+</ol>
+
+</body>
+</html>
