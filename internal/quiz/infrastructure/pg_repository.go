@@ -11,15 +11,12 @@ import (
 	shared "github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// PgRepository implements domain.Repository over Postgres.
 type PgRepository struct {
 	db *pgxpool.Pool
 }
 
-// NewPgRepository builds the repository.
 func NewPgRepository(db *pgxpool.Pool) *PgRepository { return &PgRepository{db: db} }
 
-// SaveSession inserts the session and its question snapshot atomically.
 func (r *PgRepository) SaveSession(ctx context.Context, s *domain.QuizSession) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -43,7 +40,6 @@ func (r *PgRepository) SaveSession(ctx context.Context, s *domain.QuizSession) e
 	return nil
 }
 
-// GetSession loads a session with its question snapshot.
 func (r *PgRepository) GetSession(ctx context.Context, id string) (*domain.QuizSession, error) {
 	const q = `SELECT id, user_id, topic_id, status, created_at FROM quiz_session WHERE id = $1`
 	var s domain.QuizSession
@@ -72,8 +68,6 @@ func (r *PgRepository) GetSession(ctx context.Context, id string) (*domain.QuizS
 	return &s, rows.Err()
 }
 
-// SaveResultAndComplete inserts the result, its per-question review, and marks
-// the session COMPLETED — all in one transaction.
 func (r *PgRepository) SaveResultAndComplete(ctx context.Context, res *domain.QuizResult) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -92,7 +86,7 @@ func (r *PgRepository) SaveResultAndComplete(ctx context.Context, res *domain.Qu
 		INSERT INTO quiz_answer (session_id, question_id, selected_option_id, is_correct)
 		VALUES ($1,$2,$3,$4)`
 	for _, rv := range res.Reviews {
-		// An unanswered question has no selected option -> store NULL (UUID column).
+
 		var selected any
 		if rv.SelectedOptionID != "" {
 			selected = rv.SelectedOptionID
@@ -114,7 +108,6 @@ func (r *PgRepository) SaveResultAndComplete(ctx context.Context, res *domain.Qu
 	return nil
 }
 
-// GetResultForUser loads a result (with review) only if it belongs to userID.
 func (r *PgRepository) GetResultForUser(ctx context.Context, sessionID, userID string) (*domain.QuizResult, error) {
 	const q = `
 		SELECT session_id, user_id, topic_id, score, correct_count, total, passed, completed_at
@@ -143,7 +136,6 @@ func (r *PgRepository) GetResultForUser(ctx context.Context, sessionID, userID s
 	return res, rows.Err()
 }
 
-// ListResultsByUser returns a user's quiz results (summary, without review).
 func (r *PgRepository) ListResultsByUser(ctx context.Context, userID string) ([]domain.QuizResult, error) {
 	const q = `
 		SELECT session_id, user_id, topic_id, score, correct_count, total, passed, completed_at
@@ -164,7 +156,6 @@ func (r *PgRepository) ListResultsByUser(ctx context.Context, userID string) ([]
 	return out, rows.Err()
 }
 
-// rowScanner abstracts pgx.Row and pgx.Rows for scanResult.
 type rowScanner interface {
 	Scan(dest ...any) error
 }

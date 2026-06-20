@@ -1,6 +1,3 @@
-// Package domain defines the curriculum bounded context: the Subject → Chapter
-// → Topic catalog hierarchy and its repository port. This context is the source
-// of truth for topic identity that question and content reference.
 package domain
 
 import (
@@ -14,7 +11,6 @@ const (
 	maxGrade = 12
 )
 
-// Subject is a top-level catalog entry (e.g. MATH, ENGLISH, PHYSICS).
 type Subject struct {
 	ID         string
 	Code       string
@@ -22,7 +18,6 @@ type Subject struct {
 	GradeLevel int
 }
 
-// NewSubject validates and constructs a subject.
 func NewSubject(id, code, name string, gradeLevel int) (*Subject, error) {
 	code = strings.ToUpper(strings.TrimSpace(code))
 	if code == "" {
@@ -37,7 +32,6 @@ func NewSubject(id, code, name string, gradeLevel int) (*Subject, error) {
 	return &Subject{ID: id, Code: code, Name: strings.TrimSpace(name), GradeLevel: gradeLevel}, nil
 }
 
-// Chapter groups topics within a subject, ordered by OrderIndex.
 type Chapter struct {
 	ID         string
 	SubjectID  string
@@ -45,7 +39,6 @@ type Chapter struct {
 	OrderIndex int
 }
 
-// NewChapter validates and constructs a chapter.
 func NewChapter(id, subjectID, title string, orderIndex int) (*Chapter, error) {
 	if subjectID == "" {
 		return nil, shared.ErrValidation.WithMessage("subject id is required")
@@ -59,7 +52,6 @@ func NewChapter(id, subjectID, title string, orderIndex int) (*Chapter, error) {
 	return &Chapter{ID: id, SubjectID: subjectID, Title: strings.TrimSpace(title), OrderIndex: orderIndex}, nil
 }
 
-// Topic is a leaf learning unit within a chapter (e.g. "Logarit").
 type Topic struct {
 	ID         string
 	ChapterID  string
@@ -67,7 +59,6 @@ type Topic struct {
 	OrderIndex int
 }
 
-// NewTopic validates and constructs a topic.
 func NewTopic(id, chapterID, title string, orderIndex int) (*Topic, error) {
 	if chapterID == "" {
 		return nil, shared.ErrValidation.WithMessage("chapter id is required")

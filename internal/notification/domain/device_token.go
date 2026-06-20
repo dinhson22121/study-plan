@@ -7,7 +7,6 @@ import (
 	shared "github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// DeviceToken is a user's FCM registration token for one device.
 type DeviceToken struct {
 	ID        string
 	UserID    string
@@ -18,7 +17,6 @@ type DeviceToken struct {
 	UpdatedAt time.Time
 }
 
-// NewDeviceToken validates and constructs an active device token.
 func NewDeviceToken(id, userID, token string, platform Platform, now time.Time) (*DeviceToken, error) {
 	if userID == "" {
 		return nil, shared.ErrValidation.WithMessage("user id required")

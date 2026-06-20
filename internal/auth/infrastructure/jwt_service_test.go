@@ -52,7 +52,7 @@ func TestJWT_RefreshRoundTripCarriesJTI(t *testing.T) {
 }
 
 func TestJWT_RejectsExpiredToken(t *testing.T) {
-	s := newJWT(-time.Minute) // already expired
+	s := newJWT(-time.Minute)
 	token, _, _ := s.IssueAccess("user-3", authdomain.RoleStudent)
 	if _, err := s.ParseAccess(token); !errors.Is(err, domain.ErrUnauthorized) {
 		t.Fatalf("expected unauthorized for expired token, got %v", err)
@@ -68,7 +68,7 @@ func TestJWT_RejectsTamperedToken(t *testing.T) {
 }
 
 func TestBcryptHasher_HashAndCompare(t *testing.T) {
-	h := NewBcryptHasher(4) // low cost for fast tests
+	h := NewBcryptHasher(4)
 	hash, err := h.Hash("password1")
 	if err != nil {
 		t.Fatalf("hash: %v", err)

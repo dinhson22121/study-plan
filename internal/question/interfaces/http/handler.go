@@ -1,5 +1,3 @@
-// Package questionhttp exposes the question bank over HTTP (Gin). Authoring is
-// ADMIN-only; reads are authenticated but hide answer keys from students.
 package questionhttp
 
 import (
@@ -14,24 +12,20 @@ import (
 	"github.com/son-ngo/edu-app/internal/shared/middleware"
 )
 
-// Bounds on the list limit query parameter.
 const (
 	defaultListLimit = 20
 	maxListLimit     = 100
 )
 
-// Handler adapts HTTP requests to the question service.
 type Handler struct {
 	svc      *application.Service
 	validate middleware.TokenValidator
 }
 
-// NewHandler builds the handler.
 func NewHandler(svc *application.Service, validate middleware.TokenValidator) *Handler {
 	return &Handler{svc: svc, validate: validate}
 }
 
-// Routes mounts the question endpoints under /questions.
 func (h *Handler) Routes(rg *gin.RouterGroup) {
 	g := rg.Group("/questions", middleware.Auth(h.validate))
 	g.POST("", middleware.RequireRole(middleware.RoleAdmin), h.create)
@@ -71,7 +65,7 @@ func (h *Handler) create(c *gin.Context) {
 		httpx.Fail(c, err)
 		return
 	}
-	httpx.Created(c, toResponse(q, true)) // author sees the full question
+	httpx.Created(c, toResponse(q, true))
 }
 
 func (h *Handler) get(c *gin.Context) {
@@ -108,8 +102,6 @@ func (h *Handler) list(c *gin.Context) {
 
 func isAdmin(c *gin.Context) bool { return middleware.RoleFrom(c) == middleware.RoleAdmin }
 
-// --- response DTOs ---
-
 type optionResponse struct {
 	ID         string `json:"id"`
 	Text       string `json:"text"`
@@ -127,9 +119,6 @@ type questionResponse struct {
 	Options     []optionResponse `json:"options"`
 }
 
-// toResponse converts a question to its API shape. When includeAnswers is false
-// (students), the correct-answer flags and explanation are omitted so the bank
-// can be browsed without leaking answer keys.
 func toResponse(q *domain.Question, includeAnswers bool) questionResponse {
 	resp := questionResponse{
 		ID: q.ID, TopicID: q.TopicID, Type: string(q.Type),

@@ -8,29 +8,24 @@ import (
 	shared "github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// DraftService implements review/publish of parser-produced question drafts.
 type DraftService struct {
 	drafts    domain.DraftRepository
 	questions *Service
 	now       func() time.Time
 }
 
-// NewDraftService builds the service.
 func NewDraftService(drafts domain.DraftRepository, questions *Service) *DraftService {
 	return &DraftService{drafts: drafts, questions: questions, now: time.Now}
 }
 
-// ListByAsset returns the drafts parsed from an uploaded asset.
 func (s *DraftService) ListByAsset(ctx context.Context, assetID string) ([]domain.QuestionDraft, error) {
 	return s.drafts.ListByAsset(ctx, assetID)
 }
 
-// Get returns one draft with its options.
 func (s *DraftService) Get(ctx context.Context, id string) (*domain.QuestionDraft, error) {
 	return s.drafts.GetByID(ctx, id)
 }
 
-// UpdateDraft edits a draft's stem/explanation during review.
 func (s *DraftService) UpdateDraft(ctx context.Context, id, stem, explanation string) error {
 	if stem == "" {
 		return shared.ErrValidation.WithMessage("stem cannot be empty")
@@ -38,7 +33,6 @@ func (s *DraftService) UpdateDraft(ctx context.Context, id, stem, explanation st
 	return s.drafts.UpdateDraft(ctx, id, stem, explanation, s.now())
 }
 
-// UpdateOption edits a draft option during review.
 func (s *DraftService) UpdateOption(ctx context.Context, optionID, text string, isCorrect bool) error {
 	if text == "" {
 		return shared.ErrValidation.WithMessage("option text cannot be empty")
@@ -46,7 +40,6 @@ func (s *DraftService) UpdateOption(ctx context.Context, optionID, text string, 
 	return s.drafts.UpdateOption(ctx, optionID, text, isCorrect)
 }
 
-// PublishInput is the publish-draft command.
 type PublishInput struct {
 	DraftID    string
 	TopicID    string
@@ -54,8 +47,13 @@ type PublishInput struct {
 	ReviewedBy string
 }
 
-// Publish promotes a reviewed draft into a real Question (via the question
-// service, which enforces MCQ validity) and records the link on the draft.
+type PublishByAssetInput struct {
+	AssetID    string
+	TopicID    string
+	Difficulty string
+	ReviewedBy string
+}
+
 func (s *DraftService) Publish(ctx context.Context, in PublishInput) (*domain.Question, error) {
 	draft, err := s.drafts.GetByID(ctx, in.DraftID)
 	if err != nil {
@@ -85,4 +83,32 @@ func (s *DraftService) Publish(ctx context.Context, in PublishInput) (*domain.Qu
 		return nil, err
 	}
 	return question, nil
+}
+
+func (s *DraftService) PublishByAsset(ctx context.Context, in PublishByAssetInput) ([]*domain.Question, error) {
+	drafts, err := s.drafts.ListByAsset(ctx, in.AssetID)
+	if err != nil {
+		return nil, err
+	}
+	if len(drafts) == 0 {
+		return nil, shared.ErrNotFound.WithMessage("no drafts found for asset")
+	}
+
+	out := make([]*domain.Question, 0, len(drafts))
+	for _, draft := range drafts {
+		if draft.Status == domain.DraftPublished {
+			continue
+		}
+		question, err := s.Publish(ctx, PublishInput{
+			DraftID: draft.ID, TopicID: in.TopicID, Difficulty: in.Difficulty, ReviewedBy: in.ReviewedBy,
+		})
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, question)
+	}
+	if len(out) == 0 {
+		return nil, shared.ErrConflict.WithMessage("all drafts for asset have already been published")
+	}
+	return out, nil
 }

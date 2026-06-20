@@ -12,10 +12,9 @@ import (
 	shared "github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// fakeSender is a programmable pushSender.
 type fakeSender struct {
-	errs    []error // returned per attempt, in order; nil/short means success
-	invalid bool    // whether IsTokenInvalid reports true
+	errs    []error
+	invalid bool
 	calls   int
 }
 
@@ -29,9 +28,6 @@ func (f *fakeSender) Send(context.Context, string, string, string, map[string]st
 }
 func (f *fakeSender) IsTokenInvalid(err error) bool { return err != nil && f.invalid }
 
-// stubRepo embeds the interface (nil) and overrides only DeactivateToken, which
-// is the sole method the adapter calls. Any other call would panic, surfacing
-// an unexpected dependency.
 type stubRepo struct {
 	domain.Repository
 	deactivated []string
@@ -42,7 +38,6 @@ func (r *stubRepo) DeactivateToken(_ context.Context, token string) error {
 	return nil
 }
 
-// newTestAdapter builds an adapter with sleeping disabled for fast tests.
 func newTestAdapter(sender pushSender, repo domain.Repository) *FCMAdapter {
 	a := NewFCMAdapter(sender, repo, zap.NewNop())
 	a.wait = func(context.Context, time.Duration) error { return nil }
@@ -61,7 +56,7 @@ func TestFCMAdapter_SuccessFirstTry(t *testing.T) {
 }
 
 func TestFCMAdapter_RetriesThenSucceeds(t *testing.T) {
-	s := &fakeSender{errs: []error{errors.New("transient"), errors.New("transient")}} // 3rd attempt succeeds
+	s := &fakeSender{errs: []error{errors.New("transient"), errors.New("transient")}}
 	a := newTestAdapter(s, &stubRepo{})
 	if err := a.Send(context.Background(), "tok", "t", "b", nil); err != nil {
 		t.Fatalf("unexpected error: %v", err)

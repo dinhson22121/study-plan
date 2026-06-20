@@ -1,11 +1,3 @@
-// Command migrate applies or rolls back database migrations using the
-// golang-migrate library (no external CLI required).
-//
-// Usage:
-//
-//	go run ./cmd/migrate up        # apply all up migrations
-//	go run ./cmd/migrate down 1    # roll back one migration
-//	go run ./cmd/migrate version   # print current schema version
 package main
 
 import (
@@ -79,8 +71,6 @@ func run(args []string) error {
 	return nil
 }
 
-// fileSourceURL converts a (possibly relative, possibly Windows) migration
-// directory path into a file:// URL golang-migrate accepts.
 func fileSourceURL(dir string) (string, error) {
 	abs, err := filepath.Abs(dir)
 	if err != nil {

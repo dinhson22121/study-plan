@@ -1,4 +1,3 @@
-// Package infrastructure provides the Postgres adapter for the goal repository.
 package infrastructure
 
 import (
@@ -12,15 +11,12 @@ import (
 	shared "github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// PgRepository implements domain.Repository over Postgres.
 type PgRepository struct {
 	db *pgxpool.Pool
 }
 
-// NewPgRepository builds the repository.
 func NewPgRepository(db *pgxpool.Pool) *PgRepository { return &PgRepository{db: db} }
 
-// Upsert replaces the user's goal and its subject targets atomically.
 func (r *PgRepository) Upsert(ctx context.Context, g *domain.Goal) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -43,7 +39,6 @@ func (r *PgRepository) Upsert(ctx context.Context, g *domain.Goal) error {
 		return shared.ErrInternal.WithCause(err)
 	}
 
-	// Replace subject targets wholesale.
 	if _, err := tx.Exec(ctx, `DELETE FROM subject_target WHERE user_id = $1`, g.UserID); err != nil {
 		return shared.ErrInternal.WithCause(err)
 	}
@@ -62,7 +57,6 @@ func (r *PgRepository) Upsert(ctx context.Context, g *domain.Goal) error {
 	return nil
 }
 
-// GetByUserID returns the user's goal with its subject targets.
 func (r *PgRepository) GetByUserID(ctx context.Context, userID string) (*domain.Goal, error) {
 	const q = `
 		SELECT user_id, target_university, target_major, target_date, hours_per_day, days_per_week, created_at, updated_at

@@ -12,12 +12,10 @@ import (
 	shared "github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// PgDraftRepository implements domain.DraftRepository over Postgres.
 type PgDraftRepository struct {
 	db *pgxpool.Pool
 }
 
-// NewPgDraftRepository builds the repository.
 func NewPgDraftRepository(db *pgxpool.Pool) *PgDraftRepository { return &PgDraftRepository{db: db} }
 
 const draftCols = `id, asset_id, parse_job_id, question_number, question_type, stem,

@@ -58,7 +58,7 @@ func TestWeeksUntilTarget(t *testing.T) {
 	if w := g.WeeksUntilTarget(now); w != 3 {
 		t.Fatalf("expected 3 weeks, got %d", w)
 	}
-	// Clamps to at least 1.
+
 	gNear := &Goal{TargetDate: now.Add(2 * 24 * time.Hour)}
 	if w := gNear.WeeksUntilTarget(now); w != 1 {
 		t.Fatalf("expected clamp to 1 week, got %d", w)

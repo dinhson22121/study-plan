@@ -9,22 +9,20 @@ import (
 	"github.com/son-ngo/edu-app/internal/shared/middleware"
 )
 
-// AdminDraftHandler exposes question-draft review/publish endpoints (ADMIN only).
 type AdminDraftHandler struct {
 	svc      *application.DraftService
 	validate middleware.TokenValidator
 }
 
-// NewAdminDraftHandler builds the handler.
 func NewAdminDraftHandler(svc *application.DraftService, validate middleware.TokenValidator) *AdminDraftHandler {
 	return &AdminDraftHandler{svc: svc, validate: validate}
 }
 
-// Routes mounts the draft review/publish endpoints (all ADMIN-guarded).
 func (h *AdminDraftHandler) Routes(rg *gin.RouterGroup) {
 	admin := []gin.HandlerFunc{middleware.Auth(h.validate), middleware.RequireRole(middleware.RoleAdmin)}
 
 	rg.GET("/admin/uploads/:id/draft-questions", append(admin, h.listByAsset)...)
+	rg.POST("/admin/uploads/:id/publish", append(admin, h.publishByAsset)...)
 
 	d := rg.Group("/admin/question-drafts", admin...)
 	d.PUT("/:id", h.updateDraft)
@@ -97,4 +95,20 @@ func (h *AdminDraftHandler) publish(c *gin.Context) {
 		return
 	}
 	httpx.Created(c, q)
+}
+
+func (h *AdminDraftHandler) publishByAsset(c *gin.Context) {
+	var req publishRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httpx.Fail(c, shared.ErrValidation.WithCause(err))
+		return
+	}
+	questions, err := h.svc.PublishByAsset(c.Request.Context(), application.PublishByAssetInput{
+		AssetID: c.Param("id"), TopicID: req.TopicID, Difficulty: req.Difficulty, ReviewedBy: middleware.UserIDFrom(c),
+	})
+	if err != nil {
+		httpx.Fail(c, err)
+		return
+	}
+	httpx.Created(c, questions)
 }

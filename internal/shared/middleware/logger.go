@@ -8,24 +8,16 @@ import (
 	"go.uber.org/zap"
 )
 
-// correlationHeader is the inbound/outbound header used to trace a request
-// end-to-end across HTTP and Kafka.
 const correlationHeader = "X-Correlation-ID"
 
-// ctxCorrelationID is where the per-request correlation id is stashed.
 const ctxCorrelationID = "correlation_id"
 
-// maxCorrelationIDLen bounds an inbound correlation id (else we mint our own).
 const maxCorrelationIDLen = 64
 
-// Logger returns middleware that assigns/propagates a correlation id and logs
-// one structured line per request with method, path, status, and latency.
 func Logger(log *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 
-		// Accept a client-supplied correlation id but bound its length to avoid
-		// log pollution / injection via an oversized header.
 		corrID := c.GetHeader(correlationHeader)
 		if corrID == "" || len(corrID) > maxCorrelationIDLen {
 			corrID = uuid.NewString()
@@ -46,8 +38,6 @@ func Logger(log *zap.Logger) gin.HandlerFunc {
 	}
 }
 
-// Recovery returns middleware that converts a panic into a logged 500 instead of
-// crashing the process.
 func Recovery(log *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
@@ -64,7 +54,6 @@ func Recovery(log *zap.Logger) gin.HandlerFunc {
 	}
 }
 
-// CorrelationIDFrom returns the request's correlation id, or "" if absent.
 func CorrelationIDFrom(c *gin.Context) string {
 	if v, ok := c.Get(ctxCorrelationID); ok {
 		if s, ok := v.(string); ok {

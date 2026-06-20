@@ -1,4 +1,3 @@
-// Package infrastructure provides the Postgres adapter for the user repository.
 package infrastructure
 
 import (
@@ -15,16 +14,12 @@ import (
 
 const pgUniqueViolation = "23505"
 
-// PgUserRepo implements userdomain.Repository over Postgres.
 type PgUserRepo struct {
 	db *pgxpool.Pool
 }
 
-// NewPgUserRepo builds the repository.
 func NewPgUserRepo(db *pgxpool.Pool) *PgUserRepo { return &PgUserRepo{db: db} }
 
-// Create inserts a profile, mapping a duplicate id/email to ErrConflict so the
-// event handler can treat replays idempotently.
 func (r *PgUserRepo) Create(ctx context.Context, u *userdomain.User) error {
 	const q = `
 		INSERT INTO users (id, email, display_name, created_at, updated_at)
@@ -40,7 +35,6 @@ func (r *PgUserRepo) Create(ctx context.Context, u *userdomain.User) error {
 	return nil
 }
 
-// FindByID returns a profile, or ErrNotFound.
 func (r *PgUserRepo) FindByID(ctx context.Context, id string) (*userdomain.User, error) {
 	const q = `SELECT id, email, display_name, created_at, updated_at FROM users WHERE id = $1`
 	var u userdomain.User
@@ -54,7 +48,6 @@ func (r *PgUserRepo) FindByID(ctx context.Context, id string) (*userdomain.User,
 	return &u, nil
 }
 
-// Update persists profile changes.
 func (r *PgUserRepo) Update(ctx context.Context, u *userdomain.User) error {
 	const q = `UPDATE users SET display_name = $2, updated_at = $3 WHERE id = $1`
 	tag, err := r.db.Exec(ctx, q, u.ID, u.DisplayName, u.UpdatedAt)

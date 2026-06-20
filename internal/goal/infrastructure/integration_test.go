@@ -1,10 +1,5 @@
 //go:build integration
 
-// Integration tests for the goal Postgres repository. Run with:
-//
-//	make migrate-up && go test -tags=integration ./internal/goal/...
-//
-// Requires EDU_TEST_POSTGRES_URL; skips if unset.
 package infrastructure
 
 import (
@@ -66,7 +61,6 @@ func TestGoalRepo_UpsertAndGet(t *testing.T) {
 		t.Fatalf("get: %+v / %v", got, err)
 	}
 
-	// Upsert again replaces.
 	g.TargetUniversity = "VNU"
 	if err := repo.Upsert(ctx, g); err != nil {
 		t.Fatalf("re-upsert: %v", err)

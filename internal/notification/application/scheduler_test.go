@@ -18,7 +18,6 @@ func newTestSchedulerWith(repo *fakeRepo, pub *fakePublisher, reeng Reengagement
 	return NewScheduler(disp, repo, reeng, zap.NewNop(), "Asia/Ho_Chi_Minh")
 }
 
-// fakeReengagement is a stub ReengagementLister.
 type fakeReengagement struct{ ids []string }
 
 func (f fakeReengagement) InactiveUserIDs(context.Context, int) ([]string, error) {
@@ -63,7 +62,7 @@ func TestScheduler_ReengagementNoOpWithoutSource(t *testing.T) {
 	repo := newFakeRepo()
 	repo.activeUsers = []string{"u1"}
 	pub := &fakePublisher{}
-	s := newTestScheduler(repo, pub) // nil reengagement source
+	s := newTestScheduler(repo, pub)
 
 	s.runReengagement()
 

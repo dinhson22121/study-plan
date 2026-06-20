@@ -1,22 +1,20 @@
-// Package s3 wraps the AWS SDK v2 S3 client for the small surface this app needs:
-// presigned PUT URLs (admin uploads straight to storage) and HEAD (verify an
-// upload completed). It targets any S3-compatible store; MinIO in local dev.
 package s3
 
 import (
 	"context"
 	"errors"
+	"io"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
-// Config holds the connection + presign settings.
 type Config struct {
-	Endpoint     string // empty = real AWS S3
+	Endpoint     string
 	Region       string
 	AccessKey    string
 	SecretKey    string
@@ -25,7 +23,6 @@ type Config struct {
 	PresignTTL   time.Duration
 }
 
-// Client is the configured S3 wrapper.
 type Client struct {
 	api     *awss3.Client
 	presign *awss3.PresignClient
@@ -33,7 +30,6 @@ type Client struct {
 	ttl     time.Duration
 }
 
-// PresignedUpload is everything the admin client needs to PUT a file directly.
 type PresignedUpload struct {
 	URL       string
 	Method    string
@@ -41,14 +37,22 @@ type PresignedUpload struct {
 	ExpiresAt time.Time
 }
 
-// New builds the client from static credentials. It does not contact S3.
 func New(cfg Config) (*Client, error) {
 	if cfg.Bucket == "" {
 		return nil, errors.New("s3: bucket is required")
 	}
-	awsCfg := aws.Config{
-		Region:      cfg.Region,
-		Credentials: credentials.NewStaticCredentialsProvider(cfg.AccessKey, cfg.SecretKey, ""),
+	if (cfg.AccessKey == "") != (cfg.SecretKey == "") {
+		return nil, errors.New("s3: access_key and secret_key must both be set or both be empty")
+	}
+	loadOpts := []func(*awsconfig.LoadOptions) error{awsconfig.WithRegion(cfg.Region)}
+	if cfg.AccessKey != "" {
+		loadOpts = append(loadOpts, awsconfig.WithCredentialsProvider(
+			credentials.NewStaticCredentialsProvider(cfg.AccessKey, cfg.SecretKey, ""),
+		))
+	}
+	awsCfg, err := awsconfig.LoadDefaultConfig(context.Background(), loadOpts...)
+	if err != nil {
+		return nil, err
 	}
 	api := awss3.NewFromConfig(awsCfg, func(o *awss3.Options) {
 		if cfg.Endpoint != "" {
@@ -63,10 +67,8 @@ func New(cfg Config) (*Client, error) {
 	return &Client{api: api, presign: awss3.NewPresignClient(api), bucket: cfg.Bucket, ttl: ttl}, nil
 }
 
-// Bucket returns the configured bucket name.
 func (c *Client) Bucket() string { return c.bucket }
 
-// PresignPut returns a presigned PUT URL for the object key (computed locally).
 func (c *Client) PresignPut(ctx context.Context, key, contentType string) (PresignedUpload, error) {
 	req, err := c.presign.PresignPutObject(ctx, &awss3.PutObjectInput{
 		Bucket:      aws.String(c.bucket),
@@ -90,7 +92,6 @@ func (c *Client) PresignPut(ctx context.Context, key, contentType string) (Presi
 	}, nil
 }
 
-// Head returns whether the object exists plus its size and content type.
 func (c *Client) Head(ctx context.Context, key string) (found bool, size int64, contentType string, err error) {
 	out, herr := c.api.HeadObject(ctx, &awss3.HeadObjectInput{
 		Bucket: aws.String(c.bucket),
@@ -104,4 +105,16 @@ func (c *Client) Head(ctx context.Context, key string) (found bool, size int64, 
 		return false, 0, "", herr
 	}
 	return true, aws.ToInt64(out.ContentLength), aws.ToString(out.ContentType), nil
+}
+
+func (c *Client) ReadAll(ctx context.Context, key string) ([]byte, error) {
+	out, err := c.api.GetObject(ctx, &awss3.GetObjectInput{
+		Bucket: aws.String(c.bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer out.Body.Close()
+	return io.ReadAll(out.Body)
 }

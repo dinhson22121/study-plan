@@ -85,12 +85,15 @@ a Python worker parses them into reviewable question drafts:
 ```
 POST /admin/uploads/init      → presigned PUT URL (+ asset record, PENDING)
    (client PUTs the PDF directly to S3/MinIO)
-POST /admin/uploads/complete  → verify object (HEAD) → asset UPLOADED → queue parse_job
+POST /admin/uploads/complete  → verify object (HEAD: size/content-type, optional checksum) →
+                                 asset UPLOADED → queue parse_job
    workers/pdf_parser          → claim job (FOR UPDATE SKIP LOCKED) → extract text →
                                  parse MCQ → write question_draft(+options)
+POST /admin/uploads/:id/link               → link asset to QUESTION / EXAM / CONTENT
 GET  /admin/uploads/:id/draft-questions     → review
 PUT  /admin/question-drafts/:id[/options/:optionId]  → edit
 POST /admin/question-drafts/:id/publish     → promote to a real Question
+POST /admin/uploads/:id/publish            → publish all pending drafts for the asset
 ```
 
 - Storage: S3-compatible; **MinIO** in local dev (config `EDU_S3_*`, default bucket

@@ -1,10 +1,5 @@
 //go:build integration
 
-// Integration tests for the quiz Postgres repository. Run with:
-//
-//	make migrate-up && go test -tags=integration ./internal/quiz/...
-//
-// Requires EDU_TEST_POSTGRES_URL; skips if unset.
 package infrastructure
 
 import (
@@ -78,7 +73,7 @@ func TestQuizRepo_Lifecycle(t *testing.T) {
 		Score: 100, CorrectCount: 2, Total: 2, Passed: true, CompletedAt: time.Now(),
 		Reviews: []domain.QuestionReview{
 			{QuestionID: qids[0], SelectedOptionID: oids[0], IsCorrect: true},
-			{QuestionID: qids[1], SelectedOptionID: "", IsCorrect: false}, // unanswered -> NULL
+			{QuestionID: qids[1], SelectedOptionID: "", IsCorrect: false},
 		},
 	}
 	if err := repo.SaveResultAndComplete(ctx, &result); err != nil {

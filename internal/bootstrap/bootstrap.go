@@ -1,7 +1,3 @@
-// Package bootstrap assembles the HTTP router by registering every domain module
-// in dependency order. It lives in its own package (not app) because it imports
-// the modules, while the modules import app — keeping app free of cycles. main
-// and the end-to-end tests both build the router through here.
 package bootstrap
 
 import (
@@ -25,14 +21,6 @@ import (
 	"github.com/son-ngo/edu-app/internal/user"
 )
 
-// BuildRouter assembles the Gin engine, global middleware, the health check, and
-// every domain module under /api/v1. It returns the notification module so the
-// caller can drive its background workers' lifecycle.
-//
-// Registration order encodes the deps handoffs:
-//   - auth first (sets deps.AuthValidate, used by every protected route)
-//   - analytics before notification (sets deps.ReengagementSource)
-//   - progress & studyplan after notification (use deps.Notifier)
 func BuildRouter(deps *app.Deps) (*gin.Engine, *notification.Module) {
 	if deps.Cfg.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -53,10 +41,10 @@ func BuildRouter(deps *app.Deps) (*gin.Engine, *notification.Module) {
 	goal.Register(v1, deps)
 	placement.Register(v1, deps)
 	quiz.Register(v1, deps)
-	analytics.Register(v1, deps) // sets deps.ReengagementSource (before notification)
+	analytics.Register(v1, deps)
 	notifModule := notification.Register(v1, deps)
-	progress.Register(v1, deps)  // uses deps.Notifier (after notification)
-	studyplan.Register(v1, deps) // uses deps.Notifier (after notification)
+	progress.Register(v1, deps)
+	studyplan.Register(v1, deps)
 
 	return router, notifModule
 }

@@ -20,7 +20,6 @@ import (
 
 func init() { gin.SetMode(gin.TestMode) }
 
-// memRepo embeds the interface and overrides only what the handler exercises.
 type memRepo struct {
 	domain.Repository
 	tokens map[string]string
@@ -34,7 +33,7 @@ func (r *memRepo) UpsertDeviceToken(_ context.Context, dt *domain.DeviceToken) e
 	return nil
 }
 func (r *memRepo) ListPreferences(_ context.Context, _ string) ([]domain.NotificationPreference, error) {
-	return nil, nil // empty -> manager returns defaults
+	return nil, nil
 }
 func (r *memRepo) UpsertPreference(_ context.Context, p *domain.NotificationPreference) error {
 	r.prefs[string(p.Type)] = p.Enabled

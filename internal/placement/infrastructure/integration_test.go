@@ -1,10 +1,5 @@
 //go:build integration
 
-// Integration tests for the placement Postgres repository. Run with:
-//
-//	make migrate-up && go test -tags=integration ./internal/placement/...
-//
-// Requires EDU_TEST_POSTGRES_URL; skips if unset.
 package infrastructure
 
 import (
@@ -36,8 +31,6 @@ func testPool(t *testing.T) *pgxpool.Pool {
 	return pool
 }
 
-// seedQuestions creates user, subject, chapter, topic and n questions; returns
-// the user id, subject id, and question ids (satisfying placement FKs).
 func seedQuestions(t *testing.T, pool *pgxpool.Pool, n int) (userID, subjectID string, qids []string) {
 	t.Helper()
 	ctx := context.Background()

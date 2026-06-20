@@ -1,6 +1,3 @@
-// Package application contains the notification use cases: dispatching
-// (preference gate + idempotency + enqueue), the pipeline processors for each
-// Kafka stage, preference/device-token management, and the cron scheduler.
 package application
 
 import (
@@ -16,12 +13,8 @@ import (
 	shared "github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// idempotencyTTL matches the PRD: dedupe a schedule key for 24h.
 const idempotencyTTL = 24 * time.Hour
 
-// Dispatcher implements the trigger side of the pipeline: it gates on user
-// preference, deduplicates via the idempotency store, and enqueues a schedule
-// message. Upstream modules and the cron scheduler both call Enqueue.
 type Dispatcher struct {
 	repo  domain.Repository
 	idem  domain.IdempotencyStore
@@ -31,26 +24,20 @@ type Dispatcher struct {
 	newID func() string
 }
 
-// NewDispatcher builds the dispatcher.
 func NewDispatcher(repo domain.Repository, idem domain.IdempotencyStore, pub domain.Publisher, log *zap.Logger) *Dispatcher {
 	return &Dispatcher{repo: repo, idem: idem, pub: pub, log: log, now: time.Now, newID: uuid.NewString}
 }
 
-// EnqueueInput is the dispatch command.
 type EnqueueInput struct {
 	UserID         string
 	Type           domain.NotificationType
 	TemplateCode   string
 	Variables      map[string]string
-	IdempotencyKey string // optional; generated when empty
+	IdempotencyKey string
 	DeepLink       string
-	CorrelationID  string // optional; generated when empty
+	CorrelationID  string
 }
 
-// Enqueue runs the preference gate and idempotency check, then produces a
-// schedule message. Suppressed (preference off) and duplicate (already enqueued)
-// notifications are handled silently and return nil — they are expected outcomes,
-// not errors.
 func (d *Dispatcher) Enqueue(ctx context.Context, in EnqueueInput) error {
 	if !in.Type.Valid() {
 		return shared.ErrValidation.WithMessage("invalid notification type")
@@ -61,7 +48,7 @@ func (d *Dispatcher) Enqueue(ctx context.Context, in EnqueueInput) error {
 		return err
 	}
 	if !enabled {
-		// Preference gate: log SKIPPED and stop (PRD section 4 / step 2).
+
 		skipped := domain.NewSkippedLog(d.newID(), in.UserID, in.TemplateCode, in.Type, d.correlationID(in), d.now())
 		if err := d.repo.SaveLog(ctx, skipped); err != nil {
 			return err
@@ -99,7 +86,7 @@ func (d *Dispatcher) preferenceEnabled(ctx context.Context, userID string, t dom
 	pref, err := d.repo.FindPreference(ctx, userID, t)
 	if err != nil {
 		if errors.Is(err, shared.ErrNotFound) {
-			return true, nil // default: enabled when no explicit preference
+			return true, nil
 		}
 		return false, err
 	}

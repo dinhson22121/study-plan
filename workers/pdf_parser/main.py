@@ -1,24 +1,3 @@
-#!/usr/bin/env python3
-"""Edu-app PDF parse worker (single-file).
-
-Polls `parse_job` (Postgres) for QUEUED jobs, claims one atomically with
-`FOR UPDATE SKIP LOCKED`, downloads the asset PDF from S3/MinIO, extracts text
-(PyMuPDF), parses multiple-choice questions, and writes `question_draft` +
-`question_draft_option` rows for an admin to review and publish.
-
-MVP scope: text-based PDFs, MCQ A/B/C/D. No OCR. Partial parses are kept and the
-job is marked REVIEW_REQUIRED. Idempotent: re-running a job replaces its drafts.
-
-Config (env):
-  EDU_POSTGRES_URL          postgres DSN (same as the Go app)
-  EDU_S3_ENDPOINT           e.g. http://minio:9000 (empty = real AWS S3)
-  EDU_S3_REGION             default us-east-1
-  EDU_S3_ACCESS_KEY / EDU_S3_SECRET_KEY
-  EDU_S3_BUCKET
-  EDU_S3_USE_PATH_STYLE     "true" for MinIO
-  EDU_PARSER_POLL_INTERVAL  seconds between polls (default 5)
-  EDU_PARSER_VERSION        recorded on the job (default "pdf-parser-mvp-1")
-"""
 from __future__ import annotations
 
 import dataclasses
@@ -29,7 +8,7 @@ import time
 import uuid
 
 import boto3
-import fitz  # PyMuPDF
+import fitz
 import psycopg
 from botocore.config import Config as BotoConfig
 
@@ -40,9 +19,6 @@ logging.basicConfig(
 log = logging.getLogger("pdf_parser")
 
 
-# --------------------------------------------------------------------------- #
-# Config
-# --------------------------------------------------------------------------- #
 @dataclasses.dataclass
 class Config:
     dsn: str
@@ -82,14 +58,10 @@ def s3_client(cfg: Config):
     return boto3.client("s3", **kwargs)
 
 
-# --------------------------------------------------------------------------- #
-# Job claiming / status
-# --------------------------------------------------------------------------- #
 WORKER_ID = f"pdf-parser-{uuid.uuid4().hex[:8]}"
 
 
 def claim_job(conn, parser_version: str):
-    """Atomically claim one QUEUED job. Returns (job_id, asset_id) or None."""
     sql = """
         WITH j AS (
             SELECT id FROM parse_job
@@ -109,7 +81,7 @@ def claim_job(conn, parser_version: str):
         cur.execute(sql, (WORKER_ID, parser_version))
         row = cur.fetchone()
     conn.commit()
-    return row  # (job_id, asset_id) or None
+    return row
 
 
 def fetch_asset(conn, asset_id):
@@ -117,7 +89,7 @@ def fetch_asset(conn, asset_id):
         cur.execute(
             "SELECT object_key, bucket_name FROM uploaded_asset WHERE id = %s", (asset_id,)
         )
-        return cur.fetchone()  # (object_key, bucket_name) or None
+        return cur.fetchone()
 
 
 def finish_job(conn, job_id, status, raw_text="", error=""):
@@ -132,9 +104,6 @@ def finish_job(conn, job_id, status, raw_text="", error=""):
     conn.commit()
 
 
-# --------------------------------------------------------------------------- #
-# PDF parsing
-# --------------------------------------------------------------------------- #
 QUESTION_RE = re.compile(r"(?:^|\n)\s*(?:Câu|Bài|Question)\s*(\d+)\s*[:.)]?\s*", re.IGNORECASE)
 OPTION_RE = re.compile(r"(?:^|\n)\s*([A-D])\s*[.)]\s*(.+)")
 ANSWER_RE = re.compile(r"(?:Đáp\s*án|Answer|ĐA)\s*[:.]?\s*([A-D])", re.IGNORECASE)
@@ -144,7 +113,7 @@ ANSWER_RE = re.compile(r"(?:Đáp\s*án|Answer|ĐA)\s*[:.]?\s*([A-D])", re.IGNOR
 class ParsedQuestion:
     number: int
     stem: str
-    options: list  # list[(label, text, is_correct)]
+    options: list
     confidence: float
 
 
@@ -157,9 +126,7 @@ def extract_text(pdf_bytes: bytes) -> str:
 
 
 def parse_questions(text: str) -> list:
-    """Split text into MCQ questions. Heuristic, MVP-grade."""
     parts = QUESTION_RE.split(text)
-    # parts = [preamble, num1, body1, num2, body2, ...]
     out = []
     for i in range(1, len(parts), 2):
         try:
@@ -193,7 +160,6 @@ def _parse_block(number: int, body: str):
     if not stem:
         return None
 
-    # Confidence: best when 4 options and a detected answer key.
     confidence = 0.4
     if len(options) >= 2:
         confidence = 0.7
@@ -205,11 +171,7 @@ def _parse_block(number: int, body: str):
     return ParsedQuestion(number=number, stem=stem, options=options, confidence=round(confidence, 3))
 
 
-# --------------------------------------------------------------------------- #
-# Persistence
-# --------------------------------------------------------------------------- #
 def save_drafts(conn, job_id, asset_id, questions: list):
-    """Replace this job's drafts with the freshly parsed set (idempotent retry)."""
     with conn.cursor() as cur:
         cur.execute("DELETE FROM question_draft WHERE parse_job_id = %s", (job_id,))
         for q in questions:
@@ -237,7 +199,6 @@ def _answer_key(q: ParsedQuestion) -> str:
 
 
 def needs_review(questions: list) -> bool:
-    """A parse needs review if any question is missing options or an answer key."""
     if not questions:
         return True
     for q in questions:
@@ -246,9 +207,6 @@ def needs_review(questions: list) -> bool:
     return False
 
 
-# --------------------------------------------------------------------------- #
-# Main loop
-# --------------------------------------------------------------------------- #
 def process_one(conn, s3, cfg: Config) -> bool:
     claimed = claim_job(conn, cfg.parser_version)
     if not claimed:
@@ -272,7 +230,7 @@ def process_one(conn, s3, cfg: Config) -> bool:
         status = "REVIEW_REQUIRED" if needs_review(questions) else "PARSED"
         finish_job(conn, job_id, status, raw_text=text)
         log.info("job %s -> %s (%d drafts)", job_id, status, len(questions))
-    except Exception as exc:  # noqa: BLE001 - surface any failure on the job
+    except Exception as exc:
         conn.rollback()
         log.exception("job %s failed", job_id)
         finish_job(conn, job_id, "FAILED", error=str(exc))
@@ -287,8 +245,8 @@ def main():
         try:
             with psycopg.connect(cfg.dsn) as conn:
                 while process_one(conn, s3, cfg):
-                    pass  # drain all queued jobs
-        except Exception:  # noqa: BLE001 - keep the loop alive across DB blips
+                    pass
+        except Exception:
             log.exception("worker loop error")
         time.sleep(cfg.poll_interval)
 

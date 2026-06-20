@@ -1,4 +1,3 @@
-// Package userhttp exposes user profile endpoints over HTTP (Gin).
 package userhttp
 
 import (
@@ -10,18 +9,15 @@ import (
 	"github.com/son-ngo/edu-app/internal/user/application"
 )
 
-// Handler adapts HTTP requests to the user application service.
 type Handler struct {
 	svc      *application.Service
 	validate middleware.TokenValidator
 }
 
-// NewHandler builds the user HTTP handler.
 func NewHandler(svc *application.Service, validate middleware.TokenValidator) *Handler {
 	return &Handler{svc: svc, validate: validate}
 }
 
-// Routes mounts the protected profile endpoints under the given group.
 func (h *Handler) Routes(rg *gin.RouterGroup) {
 	g := rg.Group("/users", middleware.Auth(h.validate))
 	g.GET("/me", h.getMe)

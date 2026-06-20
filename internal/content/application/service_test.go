@@ -57,7 +57,7 @@ func TestCreateLesson_GeneratesIDsAndAssignsOrder(t *testing.T) {
 func TestCreateLesson_PropagatesValidationError(t *testing.T) {
 	svc := NewService(newFakeRepo())
 	_, err := svc.CreateLesson(context.Background(), CreateLessonInput{
-		TopicID: "t1", Title: "x", Items: []ItemInput{{Kind: "PDF"}}, // PDF missing url
+		TopicID: "t1", Title: "x", Items: []ItemInput{{Kind: "PDF"}},
 	})
 	if !errors.Is(err, shared.ErrValidation) {
 		t.Fatalf("expected validation error, got %v", err)

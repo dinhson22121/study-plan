@@ -2,13 +2,6 @@ package domain
 
 import "time"
 
-// GenerateMilestones distributes topics sequentially (in curriculum order)
-// across the given number of weeks, evenly, one milestone per week. Each
-// milestone's due date is the end of its week (start + 7*week days). Weeks is
-// clamped to at least 1; empty topic input yields no milestones.
-//
-// This is the "sequential by curriculum order" strategy chosen for v1. Weak-
-// topic prioritization (using placement detail) is a future enhancement.
 func GenerateMilestones(topicIDs []string, weeks int, start time.Time, newID func() string) []Milestone {
 	n := len(topicIDs)
 	if n == 0 {

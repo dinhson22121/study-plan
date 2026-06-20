@@ -5,26 +5,22 @@ import (
 	"time"
 )
 
-// DraftStatus is the review state of a parsed question draft.
 type DraftStatus string
 
 const (
-	DraftPending   DraftStatus = "DRAFT"     // produced by the parse worker
-	DraftPublished DraftStatus = "PUBLISHED" // reviewed and promoted to a Question
+	DraftPending   DraftStatus = "DRAFT"
+	DraftPublished DraftStatus = "PUBLISHED"
 )
 
-// QuestionDraftOption is a parsed answer option awaiting review.
 type QuestionDraftOption struct {
 	ID                string
 	QuestionDraftID   string
-	OptionLabel       string // e.g. "A", "B"
+	OptionLabel       string
 	OptionText        string
 	IsCorrectInferred bool
 	OrderIndex        int
 }
 
-// QuestionDraft is a parsed-but-unreviewed question from an uploaded PDF. It is
-// written by the Python parse worker and promoted to a Question on admin review.
 type QuestionDraft struct {
 	ID                  string
 	AssetID             string
@@ -44,7 +40,6 @@ type QuestionDraft struct {
 	UpdatedAt           time.Time
 }
 
-// DraftRepository persists question drafts (worker writes; admin reviews).
 type DraftRepository interface {
 	ListByAsset(ctx context.Context, assetID string) ([]QuestionDraft, error)
 	GetByID(ctx context.Context, id string) (*QuestionDraft, error)

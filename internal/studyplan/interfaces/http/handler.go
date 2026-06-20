@@ -1,4 +1,3 @@
-// Package studyplanhttp exposes the studyplan endpoints over HTTP (Gin).
 package studyplanhttp
 
 import (
@@ -10,18 +9,15 @@ import (
 	"github.com/son-ngo/edu-app/internal/studyplan/application"
 )
 
-// Handler adapts HTTP requests to the studyplan service.
 type Handler struct {
 	svc      *application.Service
 	validate middleware.TokenValidator
 }
 
-// NewHandler builds the handler.
 func NewHandler(svc *application.Service, validate middleware.TokenValidator) *Handler {
 	return &Handler{svc: svc, validate: validate}
 }
 
-// Routes mounts the studyplan endpoints under /studyplans.
 func (h *Handler) Routes(rg *gin.RouterGroup) {
 	g := rg.Group("/studyplans", middleware.Auth(h.validate))
 	g.POST("/generate", h.generate)
@@ -62,7 +58,7 @@ func (h *Handler) get(c *gin.Context) {
 		httpx.Fail(c, err)
 		return
 	}
-	// Plans are user-scoped; prevent reading someone else's plan.
+
 	if plan.UserID != middleware.UserIDFrom(c) {
 		httpx.Fail(c, shared.ErrForbidden)
 		return

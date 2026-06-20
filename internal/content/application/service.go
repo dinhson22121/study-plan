@@ -1,5 +1,3 @@
-// Package application contains the content use cases: authoring lessons and
-// listing learning materials for a topic.
 package application
 
 import (
@@ -10,25 +8,21 @@ import (
 	"github.com/son-ngo/edu-app/internal/content/domain"
 )
 
-// Service implements the content use cases.
 type Service struct {
 	repo  domain.Repository
 	newID func() string
 }
 
-// NewService builds the service.
 func NewService(repo domain.Repository) *Service {
 	return &Service{repo: repo, newID: uuid.NewString}
 }
 
-// ItemInput is a content item in a create request.
 type ItemInput struct {
 	Kind string
 	URL  string
 	Body string
 }
 
-// CreateLessonInput is the create-lesson command.
 type CreateLessonInput struct {
 	TopicID    string
 	Title      string
@@ -36,7 +30,6 @@ type CreateLessonInput struct {
 	Items      []ItemInput
 }
 
-// CreateLesson authors a new lesson with generated ids for it and its items.
 func (s *Service) CreateLesson(ctx context.Context, in CreateLessonInput) (*domain.Lesson, error) {
 	items := make([]domain.ContentItem, 0, len(in.Items))
 	for i, it := range in.Items {
@@ -58,12 +51,10 @@ func (s *Service) CreateLesson(ctx context.Context, in CreateLessonInput) (*doma
 	return lesson, nil
 }
 
-// GetLesson returns a lesson by id.
 func (s *Service) GetLesson(ctx context.Context, id string) (*domain.Lesson, error) {
 	return s.repo.GetLesson(ctx, id)
 }
 
-// ListByTopic returns the lessons of a topic.
 func (s *Service) ListByTopic(ctx context.Context, topicID string) ([]domain.Lesson, error) {
 	return s.repo.ListByTopic(ctx, topicID)
 }

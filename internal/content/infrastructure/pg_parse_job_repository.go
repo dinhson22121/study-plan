@@ -9,12 +9,10 @@ import (
 	shared "github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// PgParseJobRepository implements domain.ParseJobRepository over Postgres.
 type PgParseJobRepository struct {
 	db *pgxpool.Pool
 }
 
-// NewPgParseJobRepository builds the repository.
 func NewPgParseJobRepository(db *pgxpool.Pool) *PgParseJobRepository {
 	return &PgParseJobRepository{db: db}
 }

@@ -13,7 +13,6 @@ import (
 	shared "github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// seederRepo embeds the interface and counts UpsertPreference calls.
 type seederRepo struct {
 	domain.Repository
 	upserts []domain.NotificationPreference

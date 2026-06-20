@@ -1,10 +1,5 @@
 //go:build integration
 
-// Integration tests for the analytics activity repository. Run with:
-//
-//	make migrate-up && go test -tags=integration ./internal/analytics/...
-//
-// Requires EDU_TEST_POSTGRES_URL; skips if unset.
 package infrastructure
 
 import (

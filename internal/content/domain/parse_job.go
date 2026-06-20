@@ -2,8 +2,6 @@ package domain
 
 import "time"
 
-// ParseJobStatus is the lifecycle state of a PDF parse job (driven by the Python
-// worker; Go only creates jobs and reads their status).
 type ParseJobStatus string
 
 const (
@@ -14,7 +12,6 @@ const (
 	ParseFailed         ParseJobStatus = "FAILED"
 )
 
-// ParseJob represents one attempt to parse an uploaded PDF into draft questions.
 type ParseJob struct {
 	ID            string
 	AssetID       string
@@ -32,7 +29,6 @@ type ParseJob struct {
 	UpdatedAt     time.Time
 }
 
-// NewParseJob builds a QUEUED job for an asset.
 func NewParseJob(id, assetID, createdBy string, now time.Time) *ParseJob {
 	return &ParseJob{
 		ID: id, AssetID: assetID, Status: ParseQueued,

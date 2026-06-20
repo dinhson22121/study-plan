@@ -11,18 +11,15 @@ import (
 	"github.com/son-ngo/edu-app/internal/shared/middleware"
 )
 
-// AdminUploadHandler exposes the admin upload + parse endpoints (ADMIN only).
 type AdminUploadHandler struct {
 	svc      *application.AdminUploadService
 	validate middleware.TokenValidator
 }
 
-// NewAdminUploadHandler builds the handler.
 func NewAdminUploadHandler(svc *application.AdminUploadService, validate middleware.TokenValidator) *AdminUploadHandler {
 	return &AdminUploadHandler{svc: svc, validate: validate}
 }
 
-// Routes mounts the endpoints under /admin/uploads (all ADMIN-guarded).
 func (h *AdminUploadHandler) Routes(rg *gin.RouterGroup) {
 	g := rg.Group("/admin/uploads", middleware.Auth(h.validate), middleware.RequireRole(middleware.RoleAdmin))
 	g.POST("/init", h.initUpload)
@@ -30,14 +27,16 @@ func (h *AdminUploadHandler) Routes(rg *gin.RouterGroup) {
 	g.GET("", h.list)
 	g.GET("/:id", h.get)
 	g.POST("/:id/parse", h.retryParse)
+	g.POST("/:id/link", h.linkEntity)
 	g.GET("/:id/parse-jobs", h.listParseJobs)
 	g.DELETE("/:id", h.delete)
 }
 
 type initRequest struct {
-	Filename    string `json:"filename" binding:"required"`
-	ContentType string `json:"content_type" binding:"required"`
-	FileSize    int64  `json:"file_size" binding:"required"`
+	Filename       string `json:"filename" binding:"required"`
+	ContentType    string `json:"content_type" binding:"required"`
+	FileSize       int64  `json:"file_size" binding:"required"`
+	ChecksumSHA256 string `json:"checksum_sha256"`
 }
 
 func (h *AdminUploadHandler) initUpload(c *gin.Context) {
@@ -48,7 +47,7 @@ func (h *AdminUploadHandler) initUpload(c *gin.Context) {
 	}
 	res, err := h.svc.InitUpload(c.Request.Context(), application.InitInput{
 		UploadedBy: middleware.UserIDFrom(c), Filename: req.Filename,
-		ContentType: req.ContentType, FileSize: req.FileSize,
+		ContentType: req.ContentType, FileSize: req.FileSize, ChecksumSHA256: req.ChecksumSHA256,
 	})
 	if err != nil {
 		httpx.Fail(c, err)
@@ -109,6 +108,24 @@ func (h *AdminUploadHandler) retryParse(c *gin.Context) {
 		return
 	}
 	httpx.Created(c, job)
+}
+
+type linkEntityRequest struct {
+	EntityType string `json:"entity_type" binding:"required"`
+	EntityID   string `json:"entity_id" binding:"required"`
+}
+
+func (h *AdminUploadHandler) linkEntity(c *gin.Context) {
+	var req linkEntityRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httpx.Fail(c, shared.ErrValidation.WithCause(err))
+		return
+	}
+	if err := h.svc.LinkEntity(c.Request.Context(), c.Param("id"), req.EntityType, req.EntityID); err != nil {
+		httpx.Fail(c, err)
+		return
+	}
+	httpx.OK(c, gin.H{"message": "asset linked"})
 }
 
 func (h *AdminUploadHandler) listParseJobs(c *gin.Context) {

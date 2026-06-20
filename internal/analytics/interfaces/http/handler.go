@@ -1,4 +1,3 @@
-// Package analyticshttp exposes analytics dashboards over HTTP (Gin).
 package analyticshttp
 
 import (
@@ -11,18 +10,15 @@ import (
 	"github.com/son-ngo/edu-app/internal/shared/middleware"
 )
 
-// Handler adapts HTTP requests to the analytics service.
 type Handler struct {
 	svc      *application.Service
 	validate middleware.TokenValidator
 }
 
-// NewHandler builds the handler.
 func NewHandler(svc *application.Service, validate middleware.TokenValidator) *Handler {
 	return &Handler{svc: svc, validate: validate}
 }
 
-// Routes mounts the analytics endpoints under /analytics.
 func (h *Handler) Routes(rg *gin.RouterGroup) {
 	g := rg.Group("/analytics", middleware.Auth(h.validate))
 	g.GET("/me", h.dashboard)

@@ -1,5 +1,3 @@
-// Package application contains the progress use cases: reacting to quiz
-// completion (mastery, streaks, achievements) and reading a user's progress.
 package application
 
 import (
@@ -16,7 +14,6 @@ import (
 	shared "github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// Service implements the progress use cases.
 type Service struct {
 	repo     domain.Repository
 	titles   domain.TopicTitleSource
@@ -25,15 +22,10 @@ type Service struct {
 	now      func() time.Time
 }
 
-// NewService builds the service.
 func NewService(repo domain.Repository, titles domain.TopicTitleSource, notifier app.Notifier, log *zap.Logger) *Service {
 	return &Service{repo: repo, titles: titles, notifier: notifier, log: log, now: time.Now}
 }
 
-// HandleQuizCompleted reacts to a quiz.completed event: it updates topic mastery
-// and the streak, then awards any newly-earned achievements (with a push). It is
-// best-effort — errors are logged and swallowed so a failure here never fails the
-// quiz submission that published the event (the bus is synchronous).
 func (s *Service) HandleQuizCompleted(ctx context.Context, evt shared.DomainEvent) error {
 	e, ok := evt.(quizdomain.QuizCompletedEvent)
 	if !ok {
@@ -50,7 +42,6 @@ func (s *Service) HandleQuizCompleted(ctx context.Context, evt shared.DomainEven
 func (s *Service) apply(ctx context.Context, e quizdomain.QuizCompletedEvent) error {
 	now := s.now()
 
-	// Mastery.
 	prog, err := s.loadProgress(ctx, e.UserID, e.TopicID)
 	if err != nil {
 		return err
@@ -62,7 +53,6 @@ func (s *Service) apply(ctx context.Context, e quizdomain.QuizCompletedEvent) er
 	}
 	justCompleted := newProg.Status == domain.StatusCompleted && !wasCompleted
 
-	// Streak.
 	streak, err := s.loadStreak(ctx, e.UserID)
 	if err != nil {
 		return err
@@ -73,7 +63,6 @@ func (s *Service) apply(ctx context.Context, e quizdomain.QuizCompletedEvent) er
 		return err
 	}
 
-	// Achievements.
 	earned := domain.DetectAchievements(e.UserID, e.TopicID, e.Score, justCompleted, streakBefore, newStreak.CurrentStreak, now)
 	for i := range earned {
 		if err := s.award(ctx, earned[i]); err != nil {
@@ -105,7 +94,6 @@ func (s *Service) loadStreak(ctx context.Context, userID string) (domain.Streak,
 	return *streak, nil
 }
 
-// award records a new achievement (once) and sends its push.
 func (s *Service) award(ctx context.Context, a domain.Achievement) error {
 	has, err := s.repo.HasAchievement(ctx, a.UserID, a.Type, a.Ref)
 	if err != nil {
@@ -121,7 +109,6 @@ func (s *Service) award(ctx context.Context, a domain.Achievement) error {
 	return nil
 }
 
-// push sends the achievement notification (best-effort).
 func (s *Service) push(ctx context.Context, a domain.Achievement) {
 	if s.notifier == nil {
 		return
@@ -134,14 +121,13 @@ func (s *Service) push(ctx context.Context, a domain.Achievement) {
 	}
 }
 
-// achievementLabel produces the {topic} variable for the push copy.
 func (s *Service) achievementLabel(ctx context.Context, a domain.Achievement) string {
 	switch a.Type {
 	case domain.AchievementStreak7:
 		return "chuỗi 7 ngày học liên tục"
 	case domain.AchievementStreak30:
 		return "chuỗi 30 ngày học liên tục"
-	default: // TOPIC_COMPLETED, PERFECT_SCORE -> ref is a topic id
+	default:
 		if title, err := s.titles.Title(ctx, a.Ref); err == nil && title != "" {
 			return title
 		}
@@ -149,9 +135,6 @@ func (s *Service) achievementLabel(ctx context.Context, a domain.Achievement) st
 	}
 }
 
-// --- queries ---
-
-// Overview is the progress summary for a user.
 type Overview struct {
 	CurrentStreak int                    `json:"current_streak"`
 	LongestStreak int                    `json:"longest_streak"`
@@ -160,7 +143,6 @@ type Overview struct {
 	Topics        []domain.TopicProgress `json:"topics"`
 }
 
-// GetOverview returns a user's streak and per-topic progress.
 func (s *Service) GetOverview(ctx context.Context, userID string) (*Overview, error) {
 	topics, err := s.repo.ListProgressByUser(ctx, userID)
 	if err != nil {

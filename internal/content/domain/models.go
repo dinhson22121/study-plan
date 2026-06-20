@@ -1,5 +1,3 @@
-// Package domain defines the content bounded context: Lessons (attached to a
-// curriculum topic) and their ContentItems, plus the repository port.
 package domain
 
 import (
@@ -8,7 +6,6 @@ import (
 	shared "github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// ContentKind is a value object for the type of a content item.
 type ContentKind string
 
 const (
@@ -18,7 +15,6 @@ const (
 	KindVideo ContentKind = "VIDEO"
 )
 
-// Valid reports whether k is a known content kind.
 func (k ContentKind) Valid() bool {
 	switch k {
 	case KindPDF, KindSlide, KindNote, KindVideo:
@@ -28,11 +24,8 @@ func (k ContentKind) Valid() bool {
 	}
 }
 
-// requiresURL reports whether this kind is referenced by URL (vs inline body).
 func (k ContentKind) requiresURL() bool { return k != KindNote }
 
-// ContentItem is one piece of learning material within a lesson. URL-backed
-// kinds (PDF/SLIDE/VIDEO) carry a URL; NOTE carries inline Body text.
 type ContentItem struct {
 	ID         string
 	Kind       ContentKind
@@ -41,7 +34,6 @@ type ContentItem struct {
 	OrderIndex int
 }
 
-// Lesson is the aggregate root: a titled collection of content items for a topic.
 type Lesson struct {
 	ID         string
 	TopicID    string
@@ -50,7 +42,6 @@ type Lesson struct {
 	Items      []ContentItem
 }
 
-// NewLesson validates and constructs a lesson with its items.
 func NewLesson(id, topicID, title string, orderIndex int, items []ContentItem) (*Lesson, error) {
 	if topicID == "" {
 		return nil, shared.ErrValidation.WithMessage("topic id is required")

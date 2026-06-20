@@ -1,4 +1,3 @@
-// Package authhttp exposes the auth use cases over HTTP (Gin).
 package authhttp
 
 import (
@@ -10,19 +9,15 @@ import (
 	"github.com/son-ngo/edu-app/internal/shared/middleware"
 )
 
-// Handler adapts HTTP requests to the auth application service.
 type Handler struct {
 	svc      *application.Service
 	validate middleware.TokenValidator
 }
 
-// NewHandler builds the auth HTTP handler. validate guards the logout route.
 func NewHandler(svc *application.Service, validate middleware.TokenValidator) *Handler {
 	return &Handler{svc: svc, validate: validate}
 }
 
-// Routes registers the auth endpoints under the given group. logout requires a
-// valid access token so a leaked refresh token alone cannot revoke a session.
 func (h *Handler) Routes(rg *gin.RouterGroup) {
 	g := rg.Group("/auth")
 	g.POST("/register", h.register)

@@ -1,4 +1,3 @@
-// Package redis provides a configured go-redis client.
 package redis
 
 import (
@@ -9,8 +8,6 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// Connect parses a redis URL, builds a client, and verifies connectivity with a
-// short ping so misconfiguration surfaces at startup.
 func Connect(ctx context.Context, url string) (*redis.Client, error) {
 	opt, err := redis.ParseURL(url)
 	if err != nil {

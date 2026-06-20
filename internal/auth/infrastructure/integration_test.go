@@ -1,15 +1,5 @@
 //go:build integration
 
-// Integration tests for the auth Postgres/Redis adapters. Run with:
-//
-//	go test -tags=integration ./internal/auth/infrastructure/...
-//
-// Requires a reachable Postgres and Redis. Configure via:
-//
-//	EDU_TEST_POSTGRES_URL=postgres://eduapp:secret@localhost:5432/eduapp?sslmode=disable
-//	EDU_TEST_REDIS_URL=redis://localhost:6379/1
-//
-// Tests skip if those env vars are unset.
 package infrastructure
 
 import (
@@ -59,13 +49,11 @@ func TestPgCredentialRepo_CreateAndFind(t *testing.T) {
 		t.Fatalf("user id mismatch")
 	}
 
-	// Duplicate email must conflict.
 	dup, _ := authdomain.NewUserCredential(uuid.NewString(), email, "hash", authdomain.RoleStudent)
 	if err := repo.Create(ctx, dup); !errors.Is(err, domain.ErrConflict) {
 		t.Fatalf("expected conflict on duplicate email, got %v", err)
 	}
 
-	// Unknown lookup must be ErrNotFound.
 	if _, err := repo.FindByEmail(ctx, "nobody-"+uuid.NewString()+"@x.com"); !errors.Is(err, domain.ErrNotFound) {
 		t.Fatalf("expected not found, got %v", err)
 	}

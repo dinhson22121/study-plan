@@ -47,6 +47,15 @@ func (r *fakeAssetRepo) MarkUploaded(_ context.Context, id string, size int64, a
 	a.VerifiedAt = &at
 	return nil
 }
+func (r *fakeAssetRepo) LinkEntity(_ context.Context, id string, entityType domain.AssetEntityType, entityID string) error {
+	a, ok := r.assets[id]
+	if !ok {
+		return shared.ErrNotFound
+	}
+	a.EntityType = entityType
+	a.EntityID = entityID
+	return nil
+}
 func (r *fakeAssetRepo) SoftDelete(_ context.Context, id string, at time.Time) error {
 	a, ok := r.assets[id]
 	if !ok {
@@ -74,8 +83,10 @@ func (r *fakeJobRepo) ListByAsset(_ context.Context, assetID string) ([]domain.P
 }
 
 type fakeStorage struct {
-	found bool
-	size  int64
+	found       bool
+	size        int64
+	contentType string
+	body        []byte
 }
 
 func (s *fakeStorage) Bucket() string { return "test-bucket" }
@@ -83,7 +94,14 @@ func (s *fakeStorage) PresignPut(_ context.Context, key, _ string) (domain.Presi
 	return domain.PresignedUpload{URL: "http://minio/" + key, Method: "PUT"}, nil
 }
 func (s *fakeStorage) Head(_ context.Context, _ string) (bool, int64, string, error) {
-	return s.found, s.size, "application/pdf", nil
+	contentType := s.contentType
+	if contentType == "" {
+		contentType = "application/pdf"
+	}
+	return s.found, s.size, contentType, nil
+}
+func (s *fakeStorage) ReadAll(_ context.Context, _ string) ([]byte, error) {
+	return append([]byte(nil), s.body...), nil
 }
 
 func newService(assets *fakeAssetRepo, jobs *fakeJobRepo, storage *fakeStorage) *AdminUploadService {
@@ -100,6 +118,7 @@ func TestInitUpload_CreatesPendingAssetAndPresign(t *testing.T) {
 
 	res, err := svc.InitUpload(context.Background(), InitInput{
 		UploadedBy: "admin", Filename: "de.pdf", ContentType: "application/pdf", FileSize: 1000,
+		ChecksumSHA256: "ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789",
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -109,6 +128,9 @@ func TestInitUpload_CreatesPendingAssetAndPresign(t *testing.T) {
 	}
 	if assets.assets[res.Asset.ID] == nil {
 		t.Fatalf("asset not stored")
+	}
+	if res.Asset.ChecksumSHA256 == "" {
+		t.Fatalf("expected checksum to be persisted")
 	}
 }
 
@@ -123,7 +145,7 @@ func TestInitUpload_RejectsOversizeAndNonPDF(t *testing.T) {
 }
 
 func TestCompleteUpload_VerifiesAndQueuesJob(t *testing.T) {
-	assets, jobs, storage := newFakeAssetRepo(), &fakeJobRepo{}, &fakeStorage{found: true, size: 2048}
+	assets, jobs, storage := newFakeAssetRepo(), &fakeJobRepo{}, &fakeStorage{found: true, size: 2048, body: []byte("pdf-body")}
 	svc := newService(assets, jobs, storage)
 	initRes, _ := svc.InitUpload(context.Background(), InitInput{UploadedBy: "admin", Filename: "de.pdf", ContentType: "application/pdf", FileSize: 2048})
 
@@ -172,8 +194,64 @@ func TestRetryParse_RequiresUploaded(t *testing.T) {
 	svc := newService(assets, jobs, storage)
 	initRes, _ := svc.InitUpload(context.Background(), InitInput{UploadedBy: "admin", Filename: "de.pdf", ContentType: "application/pdf", FileSize: 100})
 
-	// Still PENDING -> retry should be rejected.
 	if _, err := svc.RetryParse(context.Background(), "admin", initRes.Asset.ID); !errors.Is(err, shared.ErrConflict) {
 		t.Fatalf("expected conflict for non-uploaded asset, got %v", err)
+	}
+}
+
+func TestLinkEntity_RequiresUploadedAssetAndValidType(t *testing.T) {
+	assets, jobs, storage := newFakeAssetRepo(), &fakeJobRepo{}, &fakeStorage{}
+	svc := newService(assets, jobs, storage)
+	initRes, _ := svc.InitUpload(context.Background(), InitInput{UploadedBy: "admin", Filename: "de.pdf", ContentType: "application/pdf", FileSize: 100})
+
+	if err := svc.LinkEntity(context.Background(), initRes.Asset.ID, "QUESTION", "q1"); !errors.Is(err, shared.ErrConflict) {
+		t.Fatalf("expected conflict for pending asset, got %v", err)
+	}
+
+	assets.assets[initRes.Asset.ID].Status = domain.AssetUploaded
+	if err := svc.LinkEntity(context.Background(), initRes.Asset.ID, "bogus", "q1"); !errors.Is(err, shared.ErrValidation) {
+		t.Fatalf("expected validation error for invalid entity type, got %v", err)
+	}
+	if err := svc.LinkEntity(context.Background(), initRes.Asset.ID, "question", "q1"); err != nil {
+		t.Fatalf("expected link success, got %v", err)
+	}
+	if got := assets.assets[initRes.Asset.ID].EntityType; got != domain.EntityQuestion {
+		t.Fatalf("expected entity type QUESTION, got %q", got)
+	}
+	if got := assets.assets[initRes.Asset.ID].EntityID; got != "q1" {
+		t.Fatalf("expected entity id q1, got %q", got)
+	}
+}
+
+func TestCompleteUpload_SizeMismatch(t *testing.T) {
+	assets, jobs, storage := newFakeAssetRepo(), &fakeJobRepo{}, &fakeStorage{found: true, size: 99}
+	svc := newService(assets, jobs, storage)
+	initRes, _ := svc.InitUpload(context.Background(), InitInput{UploadedBy: "admin", Filename: "de.pdf", ContentType: "application/pdf", FileSize: 100})
+
+	if _, err := svc.CompleteUpload(context.Background(), "admin", initRes.Asset.ID); !errors.Is(err, shared.ErrValidation) {
+		t.Fatalf("expected validation error for size mismatch, got %v", err)
+	}
+}
+
+func TestCompleteUpload_ContentTypeMismatch(t *testing.T) {
+	assets, jobs, storage := newFakeAssetRepo(), &fakeJobRepo{}, &fakeStorage{found: true, size: 100, contentType: "application/octet-stream"}
+	svc := newService(assets, jobs, storage)
+	initRes, _ := svc.InitUpload(context.Background(), InitInput{UploadedBy: "admin", Filename: "de.pdf", ContentType: "application/pdf", FileSize: 100})
+
+	if _, err := svc.CompleteUpload(context.Background(), "admin", initRes.Asset.ID); !errors.Is(err, shared.ErrValidation) {
+		t.Fatalf("expected validation error for content-type mismatch, got %v", err)
+	}
+}
+
+func TestCompleteUpload_ChecksumMismatch(t *testing.T) {
+	assets, jobs, storage := newFakeAssetRepo(), &fakeJobRepo{}, &fakeStorage{found: true, size: 8, body: []byte("wrongpdf")}
+	svc := newService(assets, jobs, storage)
+	initRes, _ := svc.InitUpload(context.Background(), InitInput{
+		UploadedBy: "admin", Filename: "de.pdf", ContentType: "application/pdf", FileSize: 8,
+		ChecksumSHA256: "1f52f39a130b0ab1080c523493d7cdb42f4cf8db1f1d6b609f0ed2c9f0bb1f53",
+	})
+
+	if _, err := svc.CompleteUpload(context.Background(), "admin", initRes.Asset.ID); !errors.Is(err, shared.ErrValidation) {
+		t.Fatalf("expected validation error for checksum mismatch, got %v", err)
 	}
 }

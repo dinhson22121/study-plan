@@ -1,5 +1,3 @@
-// Package infrastructure provides the Postgres adapter for the curriculum
-// repository.
 package infrastructure
 
 import (
@@ -13,12 +11,10 @@ import (
 	shared "github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// PgRepository implements domain.Repository over Postgres.
 type PgRepository struct {
 	db *pgxpool.Pool
 }
 
-// NewPgRepository builds the repository.
 func NewPgRepository(db *pgxpool.Pool) *PgRepository { return &PgRepository{db: db} }
 
 func (r *PgRepository) CreateSubject(ctx context.Context, s *domain.Subject) error {

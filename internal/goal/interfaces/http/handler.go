@@ -1,5 +1,3 @@
-// Package goalhttp exposes the goal endpoints over HTTP (Gin). All routes are
-// scoped to the authenticated user.
 package goalhttp
 
 import (
@@ -13,18 +11,15 @@ import (
 	"github.com/son-ngo/edu-app/internal/shared/middleware"
 )
 
-// Handler adapts HTTP requests to the goal service.
 type Handler struct {
 	svc      *application.Service
 	validate middleware.TokenValidator
 }
 
-// NewHandler builds the handler.
 func NewHandler(svc *application.Service, validate middleware.TokenValidator) *Handler {
 	return &Handler{svc: svc, validate: validate}
 }
 
-// Routes mounts the goal endpoints under /goals.
 func (h *Handler) Routes(rg *gin.RouterGroup) {
 	g := rg.Group("/goals", middleware.Auth(h.validate))
 	g.PUT("", h.setGoal)

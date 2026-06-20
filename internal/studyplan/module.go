@@ -1,6 +1,3 @@
-// Package studyplan wires the studyplan bounded context. It composes curriculum
-// (topics), placement (level), goal (timing), and notification (reminders).
-// Must be registered after notification so deps.Notifier is set.
 package studyplan
 
 import (
@@ -15,7 +12,6 @@ import (
 	studyplanhttp "github.com/son-ngo/edu-app/internal/studyplan/interfaces/http"
 )
 
-// Register assembles the studyplan module and mounts its routes.
 func Register(rg *gin.RouterGroup, deps *app.Deps) {
 	repo := infrastructure.NewPgRepository(deps.DB)
 	topics := infrastructure.NewTopicSourceAdapter(curriculum.NewService(deps))

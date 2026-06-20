@@ -12,20 +12,16 @@ import (
 	"github.com/son-ngo/edu-app/internal/shared/domain"
 )
 
-// pgUniqueViolation is the Postgres SQLSTATE for a unique-constraint breach.
 const pgUniqueViolation = "23505"
 
-// PgCredentialRepo implements authdomain.CredentialRepository over Postgres.
 type PgCredentialRepo struct {
 	db *pgxpool.Pool
 }
 
-// NewPgCredentialRepo builds the repository.
 func NewPgCredentialRepo(db *pgxpool.Pool) *PgCredentialRepo {
 	return &PgCredentialRepo{db: db}
 }
 
-// Create inserts a new credential, mapping a duplicate email to ErrConflict.
 func (r *PgCredentialRepo) Create(ctx context.Context, c *authdomain.UserCredential) error {
 	const q = `
 		INSERT INTO user_credential (user_id, email, password_hash, role)
@@ -41,13 +37,11 @@ func (r *PgCredentialRepo) Create(ctx context.Context, c *authdomain.UserCredent
 	return nil
 }
 
-// FindByEmail returns the credential for an email, or ErrNotFound.
 func (r *PgCredentialRepo) FindByEmail(ctx context.Context, email string) (*authdomain.UserCredential, error) {
 	const q = `SELECT user_id, email, password_hash, role FROM user_credential WHERE email = $1`
 	return r.scanOne(ctx, q, email)
 }
 
-// FindByUserID returns the credential for a user id, or ErrNotFound.
 func (r *PgCredentialRepo) FindByUserID(ctx context.Context, userID string) (*authdomain.UserCredential, error) {
 	const q = `SELECT user_id, email, password_hash, role FROM user_credential WHERE user_id = $1`
 	return r.scanOne(ctx, q, userID)

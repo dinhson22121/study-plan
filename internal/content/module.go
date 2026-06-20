@@ -1,5 +1,3 @@
-// Package content wires the content bounded context: lessons plus the admin
-// upload + PDF parse pipeline.
 package content
 
 import (
@@ -13,8 +11,6 @@ import (
 	s3pkg "github.com/son-ngo/edu-app/pkg/s3"
 )
 
-// Register assembles the content module and mounts its routes. The admin upload
-// routes are mounted only when object storage (S3/MinIO) is configured.
 func Register(rg *gin.RouterGroup, deps *app.Deps) {
 	repo := infrastructure.NewPgRepository(deps.DB)
 	contenthttp.NewHandler(application.NewService(repo), deps.AuthValidate).Routes(rg)

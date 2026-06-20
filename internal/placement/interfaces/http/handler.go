@@ -1,4 +1,3 @@
-// Package placementhttp exposes the placement test flow over HTTP (Gin).
 package placementhttp
 
 import (
@@ -10,18 +9,15 @@ import (
 	"github.com/son-ngo/edu-app/internal/shared/middleware"
 )
 
-// Handler adapts HTTP requests to the placement service.
 type Handler struct {
 	svc      *application.Service
 	validate middleware.TokenValidator
 }
 
-// NewHandler builds the handler.
 func NewHandler(svc *application.Service, validate middleware.TokenValidator) *Handler {
 	return &Handler{svc: svc, validate: validate}
 }
 
-// Routes mounts the placement endpoints under /placement.
 func (h *Handler) Routes(rg *gin.RouterGroup) {
 	g := rg.Group("/placement", middleware.Auth(h.validate))
 	g.POST("/tests", h.startTest)
@@ -45,8 +41,7 @@ func (h *Handler) startTest(c *gin.Context) {
 		httpx.Fail(c, err)
 		return
 	}
-	// Return only ids; the client fetches question content via the question API
-	// (which hides answer keys).
+
 	httpx.Created(c, gin.H{
 		"id":           test.ID,
 		"subject_id":   test.SubjectID,

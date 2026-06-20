@@ -1,10 +1,5 @@
 //go:build integration
 
-// Integration tests for the progress Postgres repository. Run with:
-//
-//	make migrate-up && go test -tags=integration ./internal/progress/...
-//
-// Requires EDU_TEST_POSTGRES_URL; skips if unset.
 package infrastructure
 
 import (
@@ -57,7 +52,6 @@ func TestProgressRepo_MasteryStreakAchievement(t *testing.T) {
 	ctx := context.Background()
 	userID, topicID := seedUserTopic(t, pool)
 
-	// Topic progress upsert + read + list.
 	p := domain.TopicProgress{UserID: userID, TopicID: topicID, Status: domain.StatusCompleted, BestScore: 90, Attempts: 2, UpdatedAt: time.Now()}
 	if err := repo.UpsertTopicProgress(ctx, &p); err != nil {
 		t.Fatalf("upsert progress: %v", err)
@@ -71,7 +65,6 @@ func TestProgressRepo_MasteryStreakAchievement(t *testing.T) {
 		t.Fatalf("list progress: %d / %v", len(list), err)
 	}
 
-	// Streak upsert + read.
 	s := domain.Streak{UserID: userID, CurrentStreak: 3, LongestStreak: 5, LastActiveDate: time.Now()}
 	if err := repo.UpsertStreak(ctx, &s); err != nil {
 		t.Fatalf("upsert streak: %v", err)
@@ -81,7 +74,6 @@ func TestProgressRepo_MasteryStreakAchievement(t *testing.T) {
 		t.Fatalf("get streak: %+v / %v", gotS, err)
 	}
 
-	// Achievement save + dedup.
 	a := &domain.Achievement{UserID: userID, Type: domain.AchievementTopicCompleted, Ref: topicID, UnlockedAt: time.Now()}
 	if err := repo.SaveAchievement(ctx, a); err != nil {
 		t.Fatalf("save achievement: %v", err)

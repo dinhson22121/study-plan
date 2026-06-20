@@ -18,9 +18,8 @@ func TestManager_BroadcastDedupesSameDayRepeat(t *testing.T) {
 	repo := newFakeRepo()
 	repo.activeUsers = []string{"u1", "u2"}
 	pub := &fakePublisher{}
-	m := newManager(repo, pub) // single dispatcher/idempotency store
+	m := newManager(repo, pub)
 
-	// Two identical broadcasts on the same day must enqueue each user once.
 	if _, err := m.Broadcast(context.Background(), BroadcastInput{Type: domain.TypeAdminBroadcast, TemplateCode: "ADMIN_BROADCAST_V1"}); err != nil {
 		t.Fatalf("first broadcast: %v", err)
 	}
@@ -68,7 +67,7 @@ func TestManager_RegisterDeviceTokenValidates(t *testing.T) {
 func TestManager_BroadcastFansOutThroughGate(t *testing.T) {
 	repo := newFakeRepo()
 	repo.activeUsers = []string{"u1", "u2", "u3"}
-	// u2 disabled this type — should be skipped by the dispatcher gate.
+
 	_ = repo.UpsertPreference(context.Background(), &domain.NotificationPreference{
 		UserID: "u2", Type: domain.TypeAdminBroadcast, Enabled: false,
 	})
@@ -84,7 +83,7 @@ func TestManager_BroadcastFansOutThroughGate(t *testing.T) {
 	if count != 3 {
 		t.Fatalf("expected 3 users processed, got %d", count)
 	}
-	// Only u1 and u3 actually enqueue (u2 gated off).
+
 	if got := len(pub.onTopic(domain.TopicSchedule)); got != 2 {
 		t.Fatalf("expected 2 enqueued (u2 gated), got %d", got)
 	}

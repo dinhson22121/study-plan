@@ -17,7 +17,7 @@ func TestTopicProgress_RecordAttempt(t *testing.T) {
 	if p.Status != StatusCompleted || p.BestScore != 85 || p.Attempts != 2 {
 		t.Fatalf("after 85%%: %+v", p)
 	}
-	// Lower score keeps best and completed status.
+
 	p = p.RecordAttempt(40, now)
 	if p.BestScore != 85 || p.Status != StatusCompleted {
 		t.Fatalf("best score should not drop: %+v", p)
@@ -32,15 +32,15 @@ func TestStreak_RecordActivity(t *testing.T) {
 	if s.CurrentStreak != 1 || s.LongestStreak != 1 {
 		t.Fatalf("first day: %+v", s)
 	}
-	s = s.RecordActivity(day(1)) // same day, no change
+	s = s.RecordActivity(day(1))
 	if s.CurrentStreak != 1 {
 		t.Fatalf("same day should not increment: %+v", s)
 	}
-	s = s.RecordActivity(day(2)) // consecutive
+	s = s.RecordActivity(day(2))
 	if s.CurrentStreak != 2 {
 		t.Fatalf("consecutive day: %+v", s)
 	}
-	s = s.RecordActivity(day(5)) // gap -> reset
+	s = s.RecordActivity(day(5))
 	if s.CurrentStreak != 1 || s.LongestStreak != 2 {
 		t.Fatalf("gap should reset, keep longest: %+v", s)
 	}
@@ -49,25 +49,21 @@ func TestStreak_RecordActivity(t *testing.T) {
 func TestDetectAchievements(t *testing.T) {
 	now := time.Unix(0, 0)
 
-	// Topic just completed + perfect score.
 	got := DetectAchievements("u1", "t1", 100, true, 3, 4, now)
 	if len(got) != 2 {
 		t.Fatalf("expected TOPIC_COMPLETED + PERFECT_SCORE, got %d: %+v", len(got), got)
 	}
 
-	// Streak crossing 7.
 	got = DetectAchievements("u1", "t1", 50, false, 6, 7, now)
 	if len(got) != 1 || got[0].Type != AchievementStreak7 {
 		t.Fatalf("expected STREAK_7, got %+v", got)
 	}
 
-	// Streak already past 7 -> no new streak achievement.
 	got = DetectAchievements("u1", "t1", 50, false, 7, 8, now)
 	if len(got) != 0 {
 		t.Fatalf("expected none, got %+v", got)
 	}
 
-	// Streak crossing 30.
 	got = DetectAchievements("u1", "t1", 50, false, 29, 30, now)
 	if len(got) != 1 || got[0].Type != AchievementStreak30 {
 		t.Fatalf("expected STREAK_30, got %+v", got)
