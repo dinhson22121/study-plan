@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edu App PRD + TDD v3</title>
+<style>
+  :root {
+    --navy: #0f2942;
+    --blue: #1a5fa8;
+    --blue-light: #2d7dd2;
+    --teal: #0d9488;
+    --teal-light: #14b8a6;
+    --amber: #d97706;
+    --red: #dc2626;
+    --green: #16a34a;
+    --surface: #f8fafc;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #64748b;
+    --code-bg: #0f172a;
+    --code-text: #e2e8f0;
+    --tag-go: #00acd7;
+    --tag-kafka: #231f20;
+    --tag-pg: #336791;
+    --tag-redis: #dc382d;
+    --tag-fcm: #f6820d;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--surface);
+    color: var(--text);
+    line-height: 1.7;
+  }
+
+  /* ── Header ── */
+  .doc-header {
+    background: linear-gradient(135deg, var(--navy) 0%, #1a3a5c 60%, #1a5fa8 100%);
+    color: white;
+    padding: 48px 60px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .doc-header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 300px; height: 300px;
+    border-radius: 50%;
+    background: rgba(45,125,210,0.18);
+  }
+  .doc-header::after {
+    content: '';
+    position: absolute;
+    bottom: -40px; left: 200px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: rgba(13,148,136,0.15);
+  }
+  .header-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--teal-light);
+    margin-bottom: 12px;
+  }
+  .doc-header h1 {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 1;
+  }
+  .doc-header .subtitle {
+    font-size: 15px;
+    color: rgba(255,255,255,0.65);
+    margin-bottom: 24px;
+    position: relative;
+    z-index: 1;
+  }
+  .header-tags { display: flex; gap: 8px; flex-wrap: wrap; position: relative; z-index: 1; }
+  .tag {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .tag-go    { background: var(--tag-go);    color: white; }
+  .tag-gin   { background: #4ade80;          color: #052e16; }
+  .tag-kafka { background: #fff;             color: var(--tag-kafka); border: 1px solid #ccc; }
+  .tag-pg    { background: var(--tag-pg);    color: white; }
+  .tag-redis { background: var(--tag-redis); color: white; }
+  .tag-fcm   { background: var(--tag-fcm);   color: white; }
+  .tag-ddd   { background: var(--teal);      color: white; }
+
+  /* ── Layout ── */
+  .wrapper { max-width: 1100px; margin: 0 auto; padding: 0 40px 80px; }
+
+  /* ── TOC ── */
+  .toc {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 28px 32px;
+    margin: 36px 0 48px;
+  }
+  .toc-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+  .toc ol { counter-reset: toc; padding-left: 0; list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 32px; }
+  .toc li { counter-increment: toc; }
+  .toc a { color: var(--blue); text-decoration: none; font-size: 14px; }
+  .toc a::before { content: counter(toc) ". "; color: var(--muted); font-weight: 600; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* ── Section ── */
+  .section { margin-bottom: 56px; }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid var(--border);
+  }
+  .section-num {
+    display: flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px;
+    background: var(--navy);
+    color: white;
+    font-size: 13px;
+    font-weight: 800;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+  h2 { font-size: 22px; font-weight: 700; color: var(--navy); }
+  h3 { font-size: 16px; font-weight: 700; color: var(--navy); margin: 28px 0 12px; }
+  h4 { font-size: 14px; font-weight: 700; color: var(--blue); margin: 20px 0 8px; }
+  p  { font-size: 14px; margin-bottom: 12px; }
+
+  /* ── Cards ── */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin: 16px 0; }
+  .card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .card-icon { font-size: 22px; margin-bottom: 10px; }
+  .card h4 { margin: 0 0 6px; font-size: 14px; color: var(--navy); }
+  .card p  { font-size: 13px; color: var(--muted); margin: 0; }
+
+  /* ── Code blocks ── */
+  .code-block {
+    background: var(--code-bg);
+    color: var(--code-text);
+    border-radius: 10px;
+    padding: 20px 24px;
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    overflow-x: auto;
+    margin: 12px 0 20px;
+    position: relative;
+  }
+  .code-label {
+    position: absolute;
+    top: 10px; right: 14px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+  }
+  .c-key    { color: #93c5fd; }
+  .c-str    { color: #86efac; }
+  .c-val    { color: #fde68a; }
+  .c-com    { color: #64748b; }
+  .c-type   { color: #f9a8d4; }
+  .c-func   { color: #67e8f9; }
+
+  /* ── Architecture diagram ── */
+  .arch-box {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 28px;
+    margin: 16px 0;
+    overflow-x: auto;
+  }
+  .arch-pre {
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 13px;
+    line-height: 2;
+    color: var(--text);
+    white-space: pre;
+  }
+
+  /* ── Tables ── */
+  .table-wrap { overflow-x: auto; margin: 12px 0 24px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  thead th {
+    background: var(--navy);
+    color: white;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+  }
+  tbody tr:nth-child(even) { background: #f8fafc; }
+  tbody td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  code {
+    background: #eff6ff;
+    color: var(--blue);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: 'Fira Code', monospace;
+    font-size: 12.5px;
+  }
+
+  /* ── Module list ── */
+  .module-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    margin: 16px 0;
+  }
+  .module-item {
+    background: white;
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--blue);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--navy);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .module-item .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--blue-light);
+    flex-shrink: 0;
+  }
+
+  /* ── Callout ── */
+  .callout {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 13.5px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .callout-info    { background: #eff6ff; border-left: 4px solid var(--blue); }
+  .callout-warn    { background: #fffbeb; border-left: 4px solid var(--amber); }
+  .callout-success { background: #f0fdf4; border-left: 4px solid var(--green); }
+  .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .callout p { margin: 0; }
+
+  /* ── Flow steps ── */
+  .flow-steps { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
+  .flow-step {
+    display: flex;
+    gap: 16px;
+    position: relative;
+  }
+  .flow-step:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 17px;
+    top: 40px;
+    bottom: 0;
+    width: 2px;
+    background: var(--border);
+  }
+  .step-num {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--blue);
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    z-index: 1;
+  }
+  .step-body { padding: 6px 0 24px; }
+  .step-title { font-weight: 700; font-size: 14px; color: var(--navy); margin-bottom: 4px; }
+  .step-desc  { font-size: 13px; color: var(--muted); }
+
+  /* ── Scaling timeline ── */
+  .scale-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 16px 0; }
+  .scale-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+  }
+  .scale-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-bottom: 12px;
+  }
+  .scale-mvp   .scale-badge { background: #eff6ff; color: var(--blue); }
+  .scale-10k   .scale-badge { background: #fffbeb; color: var(--amber); }
+  .scale-50k   .scale-badge { background: #f0fdf4; color: var(--green); }
+  .scale-card h4 { margin: 0 0 8px; font-size: 15px; }
+  .scale-card ul { text-align: left; font-size: 13px; color: var(--muted); padding-left: 18px; }
+  .scale-card li { margin-bottom: 4px; }
+
+  /* ── Notification types ── */
+  .notif-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin: 16px 0; }
+  .notif-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .notif-type {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+  }
+  .t-daily    { background: #eff6ff; color: var(--blue); }
+  .t-weekly   { background: #f5f3ff; color: #7c3aed; }
+  .t-plan     { background: #fff7ed; color: #c2410c; }
+  .t-achieve  { background: #f0fdf4; color: var(--green); }
+  .t-reengage { background: #fff1f2; color: var(--red); }
+  .t-admin    { background: #fefce8; color: #854d0e; }
+  .notif-card h4 { font-size: 13.5px; margin: 0 0 6px; }
+  .notif-card p  { font-size: 12.5px; color: var(--muted); margin: 0; }
+  .notif-meta { font-size: 11px; color: var(--muted); margin-top: 8px; display: flex; gap: 12px; }
+
+  @media (max-width: 700px) {
+    .doc-header { padding: 32px 20px; }
+    .wrapper    { padding: 0 16px 60px; }
+    .toc ol     { grid-template-columns: 1fr; }
+    .scale-grid { grid-template-columns: 1fr; }
+    h2          { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════ HEADER ══════════ -->
+<div class="doc-header">
+  <div class="header-eyebrow">Product & Technical Documentation</div>
+  <h1>Edu App — PRD + TDD v3</h1>
+  <div class="subtitle">Go/Gin · Domain-Driven Design · Modular Monolith → Microservices</div>
+  <div class="header-tags">
+    <span class="tag tag-go">Go 1.23</span>
+    <span class="tag tag-gin">Gin</span>
+    <span class="tag tag-ddd">DDD</span>
+    <span class="tag tag-pg">PostgreSQL</span>
+    <span class="tag tag-redis">Redis</span>
+    <span class="tag tag-kafka">Kafka</span>
+    <span class="tag tag-fcm">FCM</span>
+  </div>
+</div>
+
+<div class="wrapper">
+
+<!-- ══════════ TOC ══════════ -->
+<div class="toc">
+  <div class="toc-title">Nội dung tài liệu</div>
+  <ol>
+    <li><a href="#s1">Tổng quan kiến trúc</a></li>
+    <li><a href="#s2">Project Structure (DDD)</a></li>
+    <li><a href="#s3">12 Domain Modules</a></li>
+    <li><a href="#s4">Notification Strategy</a></li>
+    <li><a href="#s5">Database Schema</a></li>
+    <li><a href="#s6">Kafka Topics</a></li>
+    <li><a href="#s7">Notification Flow</a></li>
+    <li><a href="#s8">API Endpoints</a></li>
+    <li><a href="#s9">Error Handling</a></li>
+    <li><a href="#s10">Scaling Plan</a></li>
+    <li><a href="#s11">Init Project</a></li>
+    <li><a href="#s12">Future Enhancements</a></li>
+  </ol>
+</div>
+
+<!-- ══════════ S1: ARCHITECTURE ══════════ -->
+<div class="section" id="s1">
+  <div class="section-header">
+    <div class="section-num">01</div>
+    <h2>Tổng quan kiến trúc</h2>
+  </div>
+
+  <div class="arch-box">
+    <div class="arch-pre">
+┌─────────────────────────────────────────────────────────────┐
+│                     Flutter Mobile App                      │
+└────────────────────────┬────────────────────────────────────┘
+                         │ HTTPS / REST + JWT
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│              Go / Gin  —  Modular Monolith                  │
+│                                                             │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────┐  │
+│  │   auth   │ │   user   │ │curriculum│ │   question   │  │
+│  ├──────────┤ ├──────────┤ ├──────────┤ ├──────────────┤  │
+│  │placement │ │   goal   │ │studyplan │ │     quiz     │  │
+│  ├──────────┤ ├──────────┤ ├──────────┤ ├──────────────┤  │
+│  │ progress │ │ content  │ │analytics │ │ notification │  │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────────┘  │
+│                                                             │
+│         Internal Domain Events (Go channels / Kafka)       │
+└──────┬───────────────────────────────────────┬─────────────┘
+       │                                       │
+       ▼                                       ▼
+┌─────────────┐                     ┌─────────────────────┐
+│ PostgreSQL  │                     │    Kafka Cluster    │
+│   + Redis   │                     │                     │
+└─────────────┘                     │ notification.sched  │
+                                    │ notification.send   │
+                                    │ notification.result │
+                                    └──────────┬──────────┘
+                                               │
+                                               ▼
+                                    ┌─────────────────────┐
+                                    │  Notification Cons. │
+                                    │  (Kafka Consumer)   │
+                                    └──────────┬──────────┘
+                                               │
+                                               ▼
+                                    ┌─────────────────────┐
+                                    │  Firebase Cloud Msg │
+                                    └──────────┬──────────┘
+                                               │
+                                               ▼
+                                    ┌─────────────────────┐
+                                    │   Student Device    │
+                                    └─────────────────────┘
+    </div>
+  </div>
+
+  <div class="callout callout-info">
+    <span class="callout-icon">ℹ️</span>
+    <p><strong>DDD Layering per module:</strong> mỗi domain module đều tuân theo 4 layer — <code>domain</code> (entities, value objects, domain events) → <code>application</code> (use cases, commands, queries) → <code>infrastructure</code> (repository impl, Kafka, FCM adapter) → <code>interfaces</code> (HTTP handlers, Kafka consumers).</p>
+  </div>
+</div>
+
+<!-- ══════════ S2: PROJECT STRUCTURE ══════════ -->
+<div class="section" id="s2">
+  <div class="section-header">
+    <div class="section-num">02</div>
+    <h2>Project Structure (DDD)</h2>
+  </div>
+
+  <div class="code-block">
+    <span class="code-label">Directory Tree</span>
+<span class="c-com">edu-app/
+├── cmd/
+│   └── server/
+│       └── main.go               <span class="c-com"># Entrypoint</span>
+├── config/
+│   ├── config.go                 <span class="c-com"># Viper config loader</span>
+│   └── config.yaml
+├── internal/
+│   ├── shared/                   <span class="c-com"># Cross-cutting concerns</span>
+│   │   ├── domain/
+│   │   │   ├── errors.go         <span class="c-com"># DomainError, NotFoundError...</span>
+│   │   │   └── event.go          <span class="c-com"># DomainEvent interface</span>
+│   │   ├── middleware/
+│   │   │   ├── auth.go           <span class="c-com"># JWT middleware</span>
+│   │   │   └── logger.go
+│   │   └── eventbus/
+│   │       └── eventbus.go       <span class="c-com"># Internal event bus</span>
+│   │
+│   ├── auth/
+│   │   ├── domain/
+│   │   │   ├── user_credential.go
+│   │   │   └── token.go
+│   │   ├── application/
+│   │   │   ├── commands/         <span class="c-com"># RegisterCmd, LoginCmd</span>
+│   │   │   └── queries/          <span class="c-com"># ValidateTokenQuery</span>
+│   │   ├── infrastructure/
+│   │   │   ├── jwt_service.go
+│   │   │   └── credential_repo.go
+│   │   └── interfaces/
+│   │       └── http/
+│   │           └── handler.go
+│   │
+│   ├── user/
+│   │   ├── domain/
+│   │   │   ├── user.go           <span class="c-com"># User aggregate root</span>
+│   │   │   └── events.go         <span class="c-com"># UserRegisteredEvent</span>
+│   │   ├── application/...
+│   │   ├── infrastructure/...
+│   │   └── interfaces/...
+│   │
+│   ├── notification/             <span class="c-com"># ← Focus module</span>
+│   │   ├── domain/
+│   │   │   ├── notification.go   <span class="c-com"># Notification aggregate</span>
+│   │   │   ├── template.go       <span class="c-com"># NotificationTemplate VO</span>
+│   │   │   ├── preference.go     <span class="c-com"># NotificationPreference</span>
+│   │   │   └── events.go         <span class="c-com"># NotificationSentEvent</span>
+│   │   ├── application/
+│   │   │   ├── commands/
+│   │   │   │   ├── send_notification.go
+│   │   │   │   └── update_preference.go
+│   │   │   ├── queries/
+│   │   │   │   └── get_notification_log.go
+│   │   │   └── services/
+│   │   │       └── scheduler.go  <span class="c-com"># Cron-based scheduler</span>
+│   │   ├── infrastructure/
+│   │   │   ├── fcm_adapter.go
+│   │   │   ├── kafka_producer.go
+│   │   │   ├── kafka_consumer.go
+│   │   │   └── pg_repository.go
+│   │   └── interfaces/
+│   │       ├── http/
+│   │       │   └── handler.go    <span class="c-com"># Preference endpoints</span>
+│   │       └── kafka/
+│   │           └── consumer.go   <span class="c-com"># Kafka message consumer</span>
+│   │
+│   ├── curriculum/ ...
+│   ├── question/   ...
+│   ├── placement/  ...
+│   ├── goal/       ...
+│   ├── studyplan/  ...
+│   ├── quiz/       ...
+│   ├── progress/   ...
+│   ├── content/    ...
+│   └── analytics/  ...
+│
+├── pkg/
+│   ├── postgres/   postgres.go   <span class="c-com"># DB connection pool</span>
+│   ├── redis/      redis.go
+│   ├── kafka/      client.go
+│   └── fcm/        client.go
+│
+├── migrations/                   <span class="c-com"># golang-migrate SQL files</span>
+│   ├── 001_init_auth.up.sql
+│   ├── 002_init_user.up.sql
+│   └── ...
+│
+├── go.mod
+├── go.sum
+├── Makefile
+└── docker-compose.yml</span>
+  </div>
+</div>
+
+<!-- ══════════ S3: MODULES ══════════ -->
+<div class="section" id="s3">
+  <div class="section-header">
+    <div class="section-num">03</div>
+    <h2>12 Domain Modules</h2>
+  </div>
+
+  <div class="module-grid">
+    <div class="module-item"><span class="dot"></span>auth</div>
+    <div class="module-item"><span class="dot"></span>user</div>
+    <div class="module-item"><span class="dot"></span>curriculum</div>
+    <div class="module-item"><span class="dot"></span>question</div>
+    <div class="module-item"><span class="dot"></span>placement</div>
+    <div class="module-item"><span class="dot"></span>goal</div>
+    <div class="module-item"><span class="dot"></span>studyplan</div>
+    <div class="module-item"><span class="dot"></span>quiz</div>
+    <div class="module-item"><span class="dot"></span>progress</div>
+    <div class="module-item"><span class="dot"></span>content</div>
+    <div class="module-item"><span class="dot"></span>analytics</div>
+    <div class="module-item"><span class="dot"></span>notification</div>
+  </div>
+
+  <h3>Ví dụ: Notification Domain Layer</h3>
+  <div class="code-block">
+    <span class="code-label">Go — domain/notification.go</span>
+<span class="c-key">package</span> domain
+
+<span class="c-key">import</span> <span class="c-str">"time"</span>
+
+<span class="c-com">// NotificationType — value object</span>
+<span class="c-key">type</span> <span class="c-type">NotificationType</span> <span class="c-key">string</span>
+
+<span class="c-key">const</span> (
+    TypeDailyReminder   <span class="c-type">NotificationType</span> = <span class="c-str">"DAILY_REMINDER"</span>
+    TypeWeeklyQuiz      <span class="c-type">NotificationType</span> = <span class="c-str">"WEEKLY_QUIZ"</span>
+    TypeStudyPlan       <span class="c-type">NotificationType</span> = <span class="c-str">"STUDY_PLAN"</span>
+    TypeAchievement     <span class="c-type">NotificationType</span> = <span class="c-str">"ACHIEVEMENT"</span>
+    TypeReengagement    <span class="c-type">NotificationType</span> = <span class="c-str">"REENGAGEMENT"</span>
+    TypeAdminBroadcast  <span class="c-type">NotificationType</span> = <span class="c-str">"ADMIN_BROADCAST"</span>
+)
+
+<span class="c-com">// NotificationStatus — value object</span>
+<span class="c-key">type</span> <span class="c-type">NotificationStatus</span> <span class="c-key">string</span>
+
+<span class="c-key">const</span> (
+    StatusPending   <span class="c-type">NotificationStatus</span> = <span class="c-str">"PENDING"</span>
+    StatusSent      <span class="c-type">NotificationStatus</span> = <span class="c-str">"SENT"</span>
+    StatusFailed    <span class="c-type">NotificationStatus</span> = <span class="c-str">"FAILED"</span>
+    StatusRetrying  <span class="c-type">NotificationStatus</span> = <span class="c-str">"RETRYING"</span>
+)
+
+<span class="c-com">// NotificationLog — aggregate root</span>
+<span class="c-key">type</span> <span class="c-type">NotificationLog</span> <span class="c-key">struct</span> {
+    ID            <span class="c-key">string</span>
+    UserID        <span class="c-key">string</span>
+    TemplateCode  <span class="c-key">string</span>
+    Type          <span class="c-type">NotificationType</span>
+    Status        <span class="c-type">NotificationStatus</span>
+    RetryCount    <span class="c-key">int</span>
+    CorrelationID <span class="c-key">string</span>
+    SentAt        <span class="c-type">*time.Time</span>
+    ErrorMessage  <span class="c-key">string</span>
+    CreatedAt     <span class="c-type">time.Time</span>
+}
+
+<span class="c-com">// NotificationPreference — entity</span>
+<span class="c-key">type</span> <span class="c-type">NotificationPreference</span> <span class="c-key">struct</span> {
+    UserID  <span class="c-key">string</span>
+    Type    <span class="c-type">NotificationType</span>
+    Enabled <span class="c-key">bool</span>
+}
+
+<span class="c-com">// Repository interface (port)</span>
+<span class="c-key">type</span> <span class="c-type">NotificationRepository</span> <span class="c-key">interface</span> {
+    SaveLog(log <span class="c-type">*NotificationLog</span>) <span class="c-key">error</span>
+    UpdateLogStatus(id <span class="c-key">string</span>, status <span class="c-type">NotificationStatus</span>, errMsg <span class="c-key">string</span>) <span class="c-key">error</span>
+    FindPreference(userID <span class="c-key">string</span>, notifType <span class="c-type">NotificationType</span>) (<span class="c-type">*NotificationPreference</span>, <span class="c-key">error</span>)
+    UpsertPreference(pref <span class="c-type">*NotificationPreference</span>) <span class="c-key">error</span>
+    FindDeviceToken(userID <span class="c-key">string</span>) (<span class="c-key">string</span>, <span class="c-key">error</span>)
+}
+
+<span class="c-com">// FCMPort — outbound port</span>
+<span class="c-key">type</span> <span class="c-type">FCMPort</span> <span class="c-key">interface</span> {
+    Send(token, title, body <span class="c-key">string</span>, data <span class="c-key">map</span>[<span class="c-key">string</span>]<span class="c-key">string</span>) <span class="c-key">error</span>
+    IsTokenInvalid(err <span class="c-key">error</span>) <span class="c-key">bool</span>
+}
+  </div>
+
+  <h3>Gin Router Bootstrap</h3>
+  <div class="code-block">
+    <span class="code-label">Go — cmd/server/main.go</span>
+<span class="c-key">func</span> <span class="c-func">main</span>() {
+    cfg := config.<span class="c-func">Load</span>()
+    db  := postgres.<span class="c-func">Connect</span>(cfg.DatabaseURL)
+    rdb := redis.<span class="c-func">Connect</span>(cfg.RedisURL)
+    kaf := kafka.<span class="c-func">NewClient</span>(cfg.KafkaBrokers)
+
+    router := gin.<span class="c-func">New</span>()
+    router.<span class="c-func">Use</span>(middleware.Logger(), middleware.Recovery())
+
+    <span class="c-com">// Register all domain modules</span>
+    auth.<span class="c-func">Register</span>(router, db, rdb, cfg)
+    user.<span class="c-func">Register</span>(router, db, rdb)
+    curriculum.<span class="c-func">Register</span>(router, db)
+    question.<span class="c-func">Register</span>(router, db)
+    placement.<span class="c-func">Register</span>(router, db)
+    goal.<span class="c-func">Register</span>(router, db)
+    studyplan.<span class="c-func">Register</span>(router, db, kaf)
+    quiz.<span class="c-func">Register</span>(router, db, rdb)
+    progress.<span class="c-func">Register</span>(router, db)
+    content.<span class="c-func">Register</span>(router, db)
+    analytics.<span class="c-func">Register</span>(router, db)
+    notification.<span class="c-func">Register</span>(router, db, rdb, kaf, cfg.FCMKey)
+
+    router.<span class="c-func">Run</span>(cfg.Port)
+}
+  </div>
+</div>
+
+<!-- ══════════ S4: NOTIFICATION STRATEGY ══════════ -->
+<div class="section" id="s4">
+  <div class="section-header">
+    <div class="section-num">04</div>
+    <h2>Notification Strategy</h2>
+  </div>
+
+  <p>Notification là thành phần chiến lược để tăng retention. Mỗi loại notification có trigger logic, schedule riêng và phải tôn trọng <strong>user preference</strong>.</p>
+
+  <div class="notif-grid">
+    <div class="notif-card">
+      <span class="notif-type t-daily">Daily Reminder</span>
+      <h4>Daily Study Reminder</h4>
+      <p>Nhắc học sinh học bài hàng ngày theo giờ học đã cài trong Study Plan.</p>
+      <div class="notif-meta">
+        <span>⏰ Cron theo timezone</span>
+        <span>📤 Kafka → FCM</span>
+      </div>
+    </div>
+    <div class="notif-card">
+      <span class="notif-type t-weekly">Weekly Quiz</span>
+      <h4>Weekly Quiz Reminder</h4>
+      <p>Nhắc làm bài kiểm tra tuần vào tối Chủ Nhật nếu chưa hoàn thành.</p>
+      <div class="notif-meta">
+        <span>⏰ Chủ nhật 19:00</span>
+        <span>📤 Kafka → FCM</span>
+      </div>
+    </div>
+    <div class="notif-card">
+      <span class="notif-type t-plan">Study Plan</span>
+      <h4>Study Plan Reminder</h4>
+      <p>Nhắc khi học sinh sắp trễ milestone trong Study Plan đã đặt.</p>
+      <div class="notif-meta">
+        <span>⏰ Event-driven</span>
+        <span>📤 Kafka → FCM</span>
+      </div>
+    </div>
+    <div class="notif-card">
+      <span class="notif-type t-achieve">Achievement</span>
+      <h4>Achievement Notification</h4>
+      <p>Chúc mừng khi học sinh đạt milestone, streak, hoặc hoàn thành chapter.</p>
+      <div class="notif-meta">
+        <span>⚡ Event-driven</span>
+        <span>📤 Direct FCM</span>
+      </div>
+    </div>
+    <div class="notif-card">
+      <span class="notif-type t-reengage">Re-engagement</span>
+      <h4>Re-engagement Notification</h4>
+      <p>Trigger sau 3 ngày không active. Nội dung cá nhân hóa theo chủ đề yếu nhất.</p>
+      <div class="notif-meta">
+        <span>⏰ Batch job hàng ngày</span>
+        <span>📤 Kafka → FCM</span>
+      </div>
+    </div>
+    <div class="notif-card">
+      <span class="notif-type t-admin">Admin Broadcast</span>
+      <h4>Admin Broadcast</h4>
+      <p>Admin gửi thông báo tới tất cả hoặc nhóm học sinh (cập nhật tính năng, sự kiện).</p>
+      <div class="notif-meta">
+        <span>🖱️ Manual trigger</span>
+        <span>📤 Kafka fan-out</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout callout-warn">
+    <span class="callout-icon">⚠️</span>
+    <p><strong>User Preference Gate:</strong> Trước khi enqueue bất kỳ notification nào vào Kafka, scheduler phải query <code>notification_preference</code> để kiểm tra <code>enabled = true</code>. Nếu user tắt loại đó → skip silently, log vào <code>notification_log</code> với status <code>SKIPPED</code>.</p>
+  </div>
+</div>
+
+<!-- ══════════ S5: DATABASE SCHEMA ══════════ -->
+<div class="section" id="s5">
+  <div class="section-header">
+    <div class="section-num">05</div>
+    <h2>Database Schema</h2>
+  </div>
+
+  <h3>device_token</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Ghi chú</th></tr></thead>
+      <tbody>
+        <tr><td><code>id</code></td><td>UUID</td><td>PK, DEFAULT gen_random_uuid()</td><td></td></tr>
+        <tr><td><code>user_id</code></td><td>UUID</td><td>NOT NULL, FK users(id), INDEX</td><td></td></tr>
+        <tr><td><code>device_token</code></td><td>VARCHAR(512)</td><td>NOT NULL, UNIQUE</td><td>FCM registration token</td></tr>
+        <tr><td><code>platform</code></td><td>VARCHAR(10)</td><td>CHECK IN ('android','ios')</td><td></td></tr>
+        <tr><td><code>is_active</code></td><td>BOOLEAN</td><td>DEFAULT true</td><td>Set false khi FCM trả 404</td></tr>
+        <tr><td><code>created_at</code></td><td>TIMESTAMPTZ</td><td>NOT NULL, DEFAULT NOW()</td><td></td></tr>
+        <tr><td><code>updated_at</code></td><td>TIMESTAMPTZ</td><td>NOT NULL</td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>notification_template</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Ghi chú</th></tr></thead>
+      <tbody>
+        <tr><td><code>id</code></td><td>UUID</td><td>PK</td><td></td></tr>
+        <tr><td><code>code</code></td><td>VARCHAR(100)</td><td>UNIQUE, NOT NULL</td><td>VD: DAILY_REMINDER_V1</td></tr>
+        <tr><td><code>title</code></td><td>VARCHAR(255)</td><td>NOT NULL</td><td>Hỗ trợ {variables}</td></tr>
+        <tr><td><code>body</code></td><td>TEXT</td><td>NOT NULL</td><td>Hỗ trợ {variables}</td></tr>
+        <tr><td><code>variables</code></td><td>JSONB</td><td></td><td>Schema của dynamic fields</td></tr>
+        <tr><td><code>notification_type</code></td><td>VARCHAR(50)</td><td>NOT NULL</td><td>Map với NotificationType</td></tr>
+        <tr><td><code>is_active</code></td><td>BOOLEAN</td><td>DEFAULT true</td><td></td></tr>
+        <tr><td><code>created_at</code></td><td>TIMESTAMPTZ</td><td>NOT NULL</td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>notification_log <span style="font-weight:400;font-size:13px;color:var(--muted)">(cải thiện từ v2)</span></h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Ghi chú</th></tr></thead>
+      <tbody>
+        <tr><td><code>id</code></td><td>UUID</td><td>PK</td><td></td></tr>
+        <tr><td><code>user_id</code></td><td>UUID</td><td>NOT NULL, INDEX</td><td></td></tr>
+        <tr><td><code>template_code</code></td><td>VARCHAR(100)</td><td>NOT NULL</td><td></td></tr>
+        <tr><td><code>notification_type</code></td><td>VARCHAR(50)</td><td>NOT NULL</td><td>Mới so với v2</td></tr>
+        <tr><td><code>correlation_id</code></td><td>UUID</td><td>NOT NULL, INDEX</td><td>Trace end-to-end</td></tr>
+        <tr><td><code>status</code></td><td>VARCHAR(20)</td><td>CHECK IN ('PENDING','SENT','FAILED','RETRYING','SKIPPED')</td><td></td></tr>
+        <tr><td><code>retry_count</code></td><td>INT</td><td>DEFAULT 0</td><td>Mới so với v2</td></tr>
+        <tr><td><code>sent_at</code></td><td>TIMESTAMPTZ</td><td></td><td></td></tr>
+        <tr><td><code>error_message</code></td><td>TEXT</td><td></td><td></td></tr>
+        <tr><td><code>created_at</code></td><td>TIMESTAMPTZ</td><td>NOT NULL</td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>notification_preference <span style="font-weight:400;font-size:13px;color:var(--muted)">(bảng mới)</span></h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Column</th><th>Type</th><th>Constraints</th><th>Ghi chú</th></tr></thead>
+      <tbody>
+        <tr><td><code>user_id</code></td><td>UUID</td><td>PK (composite)</td><td></td></tr>
+        <tr><td><code>notification_type</code></td><td>VARCHAR(50)</td><td>PK (composite)</td><td></td></tr>
+        <tr><td><code>enabled</code></td><td>BOOLEAN</td><td>DEFAULT true</td><td></td></tr>
+        <tr><td><code>updated_at</code></td><td>TIMESTAMPTZ</td><td>NOT NULL</td><td></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════ S6: KAFKA TOPICS ══════════ -->
+<div class="section" id="s6">
+  <div class="section-header">
+    <div class="section-num">06</div>
+    <h2>Kafka Topics</h2>
+  </div>
+
+  <div class="callout callout-info">
+    <span class="callout-icon">ℹ️</span>
+    <p>Mỗi message phải có <code>correlationId</code> để trace end-to-end từ scheduler → consumer → FCM → log. Dùng UUID v4.</p>
+  </div>
+
+  <h3>notification.schedule</h3>
+  <p>Producer: Study Plan scheduler, Quiz module, Progress module. Consumer: Notification Module.</p>
+  <div class="code-block">
+    <span class="code-label">JSON Schema</span>
+{
+  <span class="c-key">"correlationId"</span>:      <span class="c-str">"uuid-v4"</span>,
+  <span class="c-key">"studentId"</span>:          <span class="c-str">"uuid-v4"</span>,
+  <span class="c-key">"notificationType"</span>:   <span class="c-str">"DAILY_REMINDER"</span>,
+  <span class="c-key">"templateCode"</span>:       <span class="c-str">"DAILY_REMINDER_V1"</span>,
+  <span class="c-key">"templateVariables"</span>:  { <span class="c-key">"name"</span>: <span class="c-str">"Minh"</span>, <span class="c-key">"streak"</span>: <span class="c-val">7</span> },
+  <span class="c-key">"scheduledAt"</span>:        <span class="c-str">"2026-08-10T20:00:00+07:00"</span>,
+  <span class="c-key">"idempotencyKey"</span>:     <span class="c-str">"student-123-daily-2026-08-10"</span>
+}
+  </div>
+
+  <h3>notification.send</h3>
+  <p>Producer: Notification Consumer (sau khi resolve device token). Consumer: FCM Sender.</p>
+  <div class="code-block">
+    <span class="code-label">JSON Schema</span>
+{
+  <span class="c-key">"correlationId"</span>:  <span class="c-str">"uuid-v4"</span>,
+  <span class="c-key">"deviceToken"</span>:    <span class="c-str">"fcm-token-string"</span>,
+  <span class="c-key">"title"</span>:          <span class="c-str">"Đã đến giờ học rồi, Minh! 🎯"</span>,
+  <span class="c-key">"body"</span>:           <span class="c-str">"Streak 7 ngày của bạn đang chờ. Tiếp tục nào!"</span>,
+  <span class="c-key">"data"</span>:           { <span class="c-key">"deepLink"</span>: <span class="c-str">"/study/today"</span> },
+  <span class="c-key">"logId"</span>:          <span class="c-str">"uuid-v4"</span>
+}
+  </div>
+
+  <h3>notification.result</h3>
+  <p>Producer: FCM Sender. Consumer: Log Updater.</p>
+  <div class="code-block">
+    <span class="code-label">JSON Schema</span>
+{
+  <span class="c-key">"correlationId"</span>: <span class="c-str">"uuid-v4"</span>,
+  <span class="c-key">"logId"</span>:         <span class="c-str">"uuid-v4"</span>,
+  <span class="c-key">"status"</span>:        <span class="c-str">"SENT"</span>,           <span class="c-com">// SENT | FAILED</span>
+  <span class="c-key">"errorCode"</span>:     <span class="c-str">"TOKEN_INVALID"</span>, <span class="c-com">// null nếu SENT</span>
+  <span class="c-key">"shouldRetry"</span>:   <span class="c-val">false</span>,
+  <span class="c-key">"sentAt"</span>:        <span class="c-str">"2026-08-10T20:00:05+07:00"</span>
+}
+  </div>
+
+  <h3>notification.dlq <span style="font-weight:400;font-size:13px;color:var(--muted)">(Dead Letter Queue — bảng mới)</span></h3>
+  <p>Các message fail sau 3 lần retry sẽ được route sang topic này để manual review.</p>
+</div>
+
+<!-- ══════════ S7: NOTIFICATION FLOW ══════════ -->
+<div class="section" id="s7">
+  <div class="section-header">
+    <div class="section-num">07</div>
+    <h2>Notification Flow</h2>
+  </div>
+
+  <div class="flow-steps">
+    <div class="flow-step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">Trigger Event</div>
+        <div class="step-desc">Study Plan module emit <code>StudyPlanReminderDue</code> event. Cron scheduler (robfig/cron v3) check timezone của từng user, tạo message với <code>idempotencyKey</code>.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">Preference Check</div>
+        <div class="step-desc">Notification Service query <code>notification_preference</code>. Nếu <code>enabled = false</code> → skip, ghi log <code>SKIPPED</code>. Nếu enabled → tiếp tục.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">Enqueue Kafka</div>
+        <div class="step-desc">Produce message vào <code>notification.schedule</code>. Redis check <code>idempotencyKey</code> để tránh duplicate (TTL 24h).</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <div class="step-title">Consumer: Resolve Token</div>
+        <div class="step-desc">Notification Consumer lấy device token từ <code>device_token</code> table (chỉ lấy <code>is_active = true</code>). Render template với variables. Create <code>notification_log</code> record với status <code>PENDING</code>.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <div class="step-title">Send via FCM</div>
+        <div class="step-desc">FCM Adapter gửi push notification. Nếu HTTP 404 (token invalid) → deactivate token, log <code>FAILED</code>. Nếu HTTP 429 → exponential backoff, retry tối đa 3 lần.</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <div class="step-title">Result & Log</div>
+        <div class="step-desc">Produce vào <code>notification.result</code>. Log Updater consumer update status thành <code>SENT</code> hoặc <code>FAILED</code>. Message fail sau 3 lần → <code>notification.dlq</code>.</div>
+      </div>
+    </div>
+  </div>
+
+  <h3>FCM Retry Strategy</h3>
+  <div class="code-block">
+    <span class="code-label">Go — infrastructure/fcm_adapter.go</span>
+<span class="c-key">func</span> (a *<span class="c-type">FCMAdapter</span>) <span class="c-func">SendWithRetry</span>(token, title, body <span class="c-key">string</span>, data <span class="c-key">map</span>[<span class="c-key">string</span>]<span class="c-key">string</span>) <span class="c-key">error</span> {
+    maxRetries := <span class="c-val">3</span>
+    <span class="c-key">for</span> attempt := <span class="c-val">0</span>; attempt < maxRetries; attempt++ {
+        err := a.<span class="c-func">Send</span>(token, title, body, data)
+        <span class="c-key">if</span> err == <span class="c-val">nil</span> {
+            <span class="c-key">return nil</span>
+        }
+        <span class="c-key">if</span> a.<span class="c-func">IsTokenInvalid</span>(err) {
+            <span class="c-com">// Token revoked — deactivate immediately, no retry</span>
+            _ = a.repo.<span class="c-func">DeactivateToken</span>(token)
+            <span class="c-key">return</span> <span class="c-type">ErrTokenInvalid</span>
+        }
+        <span class="c-com">// Exponential backoff: 1s, 2s, 4s</span>
+        wait := time.<span class="c-func">Duration</span>(<span class="c-val">1</span><<attempt) * time.Second
+        time.<span class="c-func">Sleep</span>(wait)
+    }
+    <span class="c-key">return</span> <span class="c-type">ErrMaxRetriesExceeded</span>
+}
+  </div>
+</div>
+
+<!-- ══════════ S8: API ENDPOINTS ══════════ -->
+<div class="section" id="s8">
+  <div class="section-header">
+    <div class="section-num">08</div>
+    <h2>API Endpoints</h2>
+  </div>
+
+  <h3>Notification Module</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Mô tả</th></tr></thead>
+      <tbody>
+        <tr><td><code>POST</code></td><td><code>/api/v1/devices/token</code></td><td>JWT</td><td>Đăng ký/update FCM device token</td></tr>
+        <tr><td><code>DELETE</code></td><td><code>/api/v1/devices/token</code></td><td>JWT</td><td>Xóa device token khi logout</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/v1/notifications/preferences</code></td><td>JWT</td><td>Lấy toàn bộ preferences của user</td></tr>
+        <tr><td><code>PUT</code></td><td><code>/api/v1/notifications/preferences/:type</code></td><td>JWT</td><td>Bật/tắt một loại notification</td></tr>
+        <tr><td><code>GET</code></td><td><code>/api/v1/notifications/history</code></td><td>JWT</td><td>Lịch sử notification (paginated)</td></tr>
+        <tr><td><code>POST</code></td><td><code>/api/v1/admin/notifications/broadcast</code></td><td>ADMIN</td><td>Gửi broadcast tới tất cả users</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Auth Module</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Mô tả</th></tr></thead>
+      <tbody>
+        <tr><td><code>POST</code></td><td><code>/api/v1/auth/register</code></td><td>Public</td><td>Đăng ký tài khoản</td></tr>
+        <tr><td><code>POST</code></td><td><code>/api/v1/auth/login</code></td><td>Public</td><td>Đăng nhập, trả JWT access + refresh</td></tr>
+        <tr><td><code>POST</code></td><td><code>/api/v1/auth/refresh</code></td><td>Refresh token</td><td>Gia hạn access token</td></tr>
+        <tr><td><code>POST</code></td><td><code>/api/v1/auth/logout</code></td><td>JWT</td><td>Revoke refresh token</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════ S9: ERROR HANDLING ══════════ -->
+<div class="section" id="s9">
+  <div class="section-header">
+    <div class="section-num">09</div>
+    <h2>Error Handling</h2>
+  </div>
+
+  <div class="code-block">
+    <span class="code-label">Go — shared/domain/errors.go</span>
+<span class="c-key">type</span> <span class="c-type">DomainError</span> <span class="c-key">struct</span> {
+    Code    <span class="c-key">string</span>
+    Message <span class="c-key">string</span>
+    Err     <span class="c-key">error</span>
+}
+
+<span class="c-key">var</span> (
+    <span class="c-type">ErrNotFound</span>          = <span class="c-func">newDomain</span>(<span class="c-str">"NOT_FOUND"</span>,          <span class="c-str">"resource not found"</span>)
+    <span class="c-type">ErrTokenInvalid</span>       = <span class="c-func">newDomain</span>(<span class="c-str">"FCM_TOKEN_INVALID"</span>,   <span class="c-str">"FCM token revoked or expired"</span>)
+    <span class="c-type">ErrMaxRetriesExceeded</span> = <span class="c-func">newDomain</span>(<span class="c-str">"MAX_RETRIES_EXCEEDED"</span>,<span class="c-str">"notification failed after 3 retries"</span>)
+    <span class="c-type">ErrPreferenceDisabled</span> = <span class="c-func">newDomain</span>(<span class="c-str">"NOTIF_DISABLED"</span>,      <span class="c-str">"user disabled this notification type"</span>)
+    <span class="c-type">ErrDuplicateMessage</span>   = <span class="c-func">newDomain</span>(<span class="c-str">"DUPLICATE_MESSAGE"</span>,   <span class="c-str">"idempotency key already processed"</span>)
+)
+  </div>
+
+  <p>Gin handler map DomainError sang HTTP status code nhất quán:</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Domain Error</th><th>HTTP Status</th></tr></thead>
+      <tbody>
+        <tr><td><code>ErrNotFound</code></td><td>404 Not Found</td></tr>
+        <tr><td><code>ErrTokenInvalid</code></td><td>410 Gone</td></tr>
+        <tr><td><code>ErrMaxRetriesExceeded</code></td><td>503 Service Unavailable</td></tr>
+        <tr><td><code>ErrDuplicateMessage</code></td><td>200 OK (idempotent)</td></tr>
+        <tr><td>Validation error</td><td>422 Unprocessable</td></tr>
+        <tr><td>Unexpected</td><td>500 Internal Server Error</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════ S10: SCALING ══════════ -->
+<div class="section" id="s10">
+  <div class="section-header">
+    <div class="section-num">10</div>
+    <h2>Scaling Plan</h2>
+  </div>
+
+  <div class="scale-grid">
+    <div class="scale-card scale-mvp">
+      <span class="scale-badge">MVP</span>
+      <h4>&lt; 1k Users</h4>
+      <ul>
+        <li>Notification module trong Monolith</li>
+        <li>1 Kafka partition/topic</li>
+        <li>1 consumer goroutine</li>
+        <li>Cron job đơn giản</li>
+        <li>FCM direct call</li>
+      </ul>
+    </div>
+    <div class="scale-card scale-10k">
+      <span class="scale-badge">10k Users</span>
+      <h4>10k Active Users</h4>
+      <ul>
+        <li>Tăng lên 4–6 partitions</li>
+        <li>Multiple consumer instances</li>
+        <li>Redis idempotency layer</li>
+        <li>Batch FCM API (500 tokens/call)</li>
+        <li>Read replica PostgreSQL</li>
+      </ul>
+    </div>
+    <div class="scale-card scale-50k">
+      <span class="scale-badge">50k+ Users</span>
+      <h4>50k+ Active Users</h4>
+      <ul>
+        <li>Tách Notification Service riêng</li>
+        <li>gRPC internal communication</li>
+        <li>Dedicated Kafka cluster</li>
+        <li>Push provider abstraction layer</li>
+        <li>Horizontal pod autoscaling</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ S11: INIT PROJECT ══════════ -->
+<div class="section" id="s11">
+  <div class="section-header">
+    <div class="section-num">11</div>
+    <h2>Init Project</h2>
+  </div>
+
+  <p>Chạy script dưới đây để khởi tạo toàn bộ project structure. Thay <code>YOUR_MODULE_NAME</code> bằng tên module thực tế.</p>
+
+  <div class="code-block">
+    <span class="code-label">Bash — init.sh</span>
+<span class="c-com">#!/bin/bash
+# Usage: MODULE_NAME=github.com/myorg/edu-app bash init.sh</span>
+
+MODULE_NAME=<span class="c-str">${MODULE_NAME:-"edu-app"}</span>
+DOMAINS=(<span class="c-str">"auth" "user" "curriculum" "question" "placement" "goal" "studyplan" "quiz" "progress" "content" "analytics" "notification"</span>)
+LAYERS=(<span class="c-str">"domain" "application/commands" "application/queries" "application/services" "infrastructure" "interfaces/http" "interfaces/kafka"</span>)
+
+<span class="c-func">echo</span> <span class="c-str">"🚀 Initializing edu-app..."</span>
+go mod init $MODULE_NAME
+
+<span class="c-com"># Shared packages</span>
+mkdir -p internal/shared/{domain,middleware,eventbus}
+mkdir -p pkg/{postgres,redis,kafka,fcm}
+mkdir -p cmd/server config migrations
+
+<span class="c-com"># Domain modules</span>
+<span class="c-key">for</span> domain in <span class="c-str">"${DOMAINS[@]}"</span>; <span class="c-key">do</span>
+  <span class="c-key">for</span> layer in <span class="c-str">"${LAYERS[@]}"</span>; <span class="c-key">do</span>
+    mkdir -p <span class="c-str">"internal/$domain/$layer"</span>
+  <span class="c-key">done</span>
+  <span class="c-func">touch</span> <span class="c-str">"internal/$domain/module.go"</span>
+<span class="c-key">done</span>
+
+<span class="c-com"># Install dependencies</span>
+go get github.com/gin-gonic/gin@latest
+go get github.com/golang-jwt/jwt/v5@latest
+go get github.com/jackc/pgx/v5@latest
+go get github.com/redis/go-redis/v9@latest
+go get github.com/segmentio/kafka-go@latest
+go get firebase.google.com/go/v4@latest
+go get github.com/golang-migrate/migrate/v4@latest
+go get github.com/robfig/cron/v3@latest
+go get github.com/spf13/viper@latest
+go get go.uber.org/zap@latest
+
+<span class="c-func">echo</span> <span class="c-str">"✅ Done! Run: go mod tidy"</span>
+  </div>
+
+  <h3>docker-compose.yml</h3>
+  <div class="code-block">
+    <span class="code-label">YAML</span>
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: eduapp
+      POSTGRES_USER: eduapp
+      POSTGRES_PASSWORD: secret
+    ports: [<span class="c-str">"5432:5432"</span>]
+    volumes: [postgres_data:/var/lib/postgresql/data]
+
+  redis:
+    image: redis:7-alpine
+    ports: [<span class="c-str">"6379:6379"</span>]
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+    ports: [<span class="c-str">"9092:9092"</span>]
+    depends_on: [zookeeper]
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+volumes:
+  postgres_data:
+  </div>
+</div>
+
+<!-- ══════════ S12: FUTURE ══════════ -->
+<div class="section" id="s12">
+  <div class="section-header">
+    <div class="section-num">12</div>
+    <h2>Future Enhancements</h2>
+  </div>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-icon">🤖</div>
+      <h4>AI-based Reminder</h4>
+      <p>Model dự đoán thời điểm học sinh có khả năng mở app cao nhất để gửi reminder đúng lúc.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🎯</div>
+      <h4>Weak-topic Personalization</h4>
+      <p>Re-engagement notification đề xuất đúng chủ đề học sinh đang yếu nhất dựa trên quiz history.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">👨‍👩‍👧</div>
+      <h4>Parent Notification</h4>
+      <p>Báo cáo tiến độ tuần gửi tới phụ huynh qua email hoặc SMS thay vì FCM.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔥</div>
+      <h4>Streak Recovery</h4>
+      <p>Campaign tự động khi streak sắp bị break — gửi trước 2 giờ với nội dung gamified.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">🌍</div>
+      <h4>Multi-channel</h4>
+      <p>Abstraction layer hỗ trợ FCM, APNs, SMS (Twilio), Email (SendGrid) trong cùng một NotificationPort.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">📊</div>
+      <h4>Notification Analytics</h4>
+      <p>Track open rate, click-through rate per notification type để tối ưu content và schedule.</p>
+    </div>
+  </div>
+
+  <div class="callout callout-success">
+    <span class="callout-icon">✅</span>
+    <p><strong>Từ v2 → v3:</strong> Đã bổ sung <code>notification_preference</code> table, <code>retry_count</code> + <code>correlation_id</code> + <code>notification_type</code> vào log, FCM failure handling với exponential backoff, idempotency key qua Redis, timezone-aware scheduler, và Dead Letter Queue.</p>
+  </div>
+</div>
+
+</div><!-- /wrapper -->
+</body>
+</html>
