@@ -1,0 +1,14 @@
+# Enforce LF line endings for source so gofmt stays consistent across OSes
+# (Windows checkouts otherwise get CRLF via core.autocrlf and break gofmt -l).
+* text=auto eol=lf
+*.go text eol=lf
+*.sql text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+Makefile text eol=lf
+
+# Binary files: leave untouched
+*.png binary
+*.jpg binary
+*.pdf binary

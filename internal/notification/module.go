@@ -40,6 +40,9 @@ func Register(rg *gin.RouterGroup, deps *app.Deps) *Module {
 	dispatcher := application.NewDispatcher(repo, idem, deps.Producer, deps.Log)
 	manager := application.NewManager(repo, dispatcher)
 
+	// Expose the dispatcher to other modules (e.g. studyplan) as a Notifier.
+	deps.Notifier = &notifier{dispatcher: dispatcher}
+
 	sender := buildSender(deps)
 	fcmAdapter := infrastructure.NewFCMAdapter(sender, repo, deps.Log)
 
@@ -47,8 +50,8 @@ func Register(rg *gin.RouterGroup, deps *app.Deps) *Module {
 	send := application.NewSendProcessor(fcmAdapter, deps.Producer, deps.Log)
 	result := application.NewResultProcessor(repo, deps.Producer, deps.Log)
 
-	consumers := notifkafka.NewConsumers(deps.Kafka, deps.Cfg.Kafka.GroupID, schedule, send, result, deps.Log)
-	scheduler := application.NewScheduler(dispatcher, repo, deps.Log, deps.Cfg.Timezone)
+	consumers := notifkafka.NewConsumers(deps.Kafka, deps.Producer, deps.Cfg.Kafka.GroupID, schedule, send, result, deps.Log)
+	scheduler := application.NewScheduler(dispatcher, repo, deps.ReengagementSource, deps.Log, deps.Cfg.Timezone)
 
 	// Seed default preferences when a user registers.
 	deps.Bus.Subscribe(EventUserRegistered, newPreferenceSeeder(repo, deps.Log).handle)

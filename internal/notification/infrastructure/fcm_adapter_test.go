@@ -45,7 +45,7 @@ func (r *stubRepo) DeactivateToken(_ context.Context, token string) error {
 // newTestAdapter builds an adapter with sleeping disabled for fast tests.
 func newTestAdapter(sender pushSender, repo domain.Repository) *FCMAdapter {
 	a := NewFCMAdapter(sender, repo, zap.NewNop())
-	a.sleep = func(time.Duration) {}
+	a.wait = func(context.Context, time.Duration) error { return nil }
 	return a
 }
 

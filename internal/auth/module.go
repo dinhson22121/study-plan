@@ -18,7 +18,7 @@ import (
 func Register(rg *gin.RouterGroup, deps *app.Deps) {
 	svc := NewService(deps)
 	deps.AuthValidate = svc.ValidateAccessToken
-	authhttp.NewHandler(svc).Routes(rg)
+	authhttp.NewHandler(svc, svc.ValidateAccessToken).Routes(rg)
 }
 
 // NewService builds the auth application service from shared dependencies.

@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS subject_target;
+DROP TABLE IF EXISTS goal;

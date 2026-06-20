@@ -5,6 +5,7 @@ package notifkafka
 import (
 	"context"
 	"encoding/json"
+	"sync"
 
 	kgo "github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
@@ -17,42 +18,42 @@ import (
 // Consumers owns the consumer goroutines for the three pipeline stages.
 type Consumers struct {
 	client   *kafka.Client
+	producer kafka.Producer
 	groupID  string
 	schedule *application.ScheduleProcessor
 	send     *application.SendProcessor
 	result   *application.ResultProcessor
 	log      *zap.Logger
 	readers  []*kgo.Reader
+	wg       sync.WaitGroup
 }
 
-// NewConsumers builds the consumer set.
+// NewConsumers builds the consumer set. The producer is used to dead-letter
+// messages that cannot be decoded.
 func NewConsumers(
 	client *kafka.Client,
+	producer kafka.Producer,
 	groupID string,
 	schedule *application.ScheduleProcessor,
 	send *application.SendProcessor,
 	result *application.ResultProcessor,
 	log *zap.Logger,
 ) *Consumers {
-	return &Consumers{client: client, groupID: groupID, schedule: schedule, send: send, result: result, log: log}
+	return &Consumers{client: client, producer: producer, groupID: groupID, schedule: schedule, send: send, result: result, log: log}
 }
 
 // Start launches one consumer goroutine per pipeline topic. They run until ctx
-// is cancelled. Call Close afterwards to release readers.
+// is cancelled. Call Close afterwards to wait for the goroutines and release
+// readers.
 func (c *Consumers) Start(ctx context.Context) {
-	go runConsumer(ctx, c.newReader(domain.TopicSchedule), c.log, func(ctx context.Context, m domain.ScheduleMessage) error {
-		return c.schedule.Process(ctx, m)
-	})
-	go runConsumer(ctx, c.newReader(domain.TopicSend), c.log, func(ctx context.Context, m domain.SendMessage) error {
-		return c.send.Process(ctx, m)
-	})
-	go runConsumer(ctx, c.newReader(domain.TopicResult), c.log, func(ctx context.Context, m domain.ResultMessage) error {
-		return c.result.Process(ctx, m)
-	})
+	startConsumer(c, ctx, domain.TopicSchedule, c.schedule.Process)
+	startConsumer(c, ctx, domain.TopicSend, c.send.Process)
+	startConsumer(c, ctx, domain.TopicResult, c.result.Process)
 }
 
-// Close releases all readers.
+// Close waits for the consumer goroutines to finish, then releases readers.
 func (c *Consumers) Close() {
+	c.wg.Wait()
 	for _, r := range c.readers {
 		_ = r.Close()
 	}
@@ -65,29 +66,53 @@ func (c *Consumers) newReader(topic string) *kgo.Reader {
 	return r
 }
 
-// runConsumer reads messages, decodes them into T, and invokes handler. It
-// commits after each message (success or handled error) so a poison message
-// never blocks the partition; processors record failures to the log/DLQ.
-func runConsumer[T any](ctx context.Context, reader *kgo.Reader, log *zap.Logger, handler func(context.Context, T) error) {
+// deadLetter forwards an undecodable message to the DLQ for manual review.
+func (c *Consumers) deadLetter(ctx context.Context, srcTopic string, key, value []byte) {
+	if c.producer == nil {
+		return
+	}
+	if err := c.producer.Publish(ctx, domain.TopicDLQ, key, value); err != nil {
+		c.log.Error("kafka dead-letter publish failed", zap.String("src_topic", srcTopic), zap.Error(err))
+	}
+}
+
+// startConsumer spawns a tracked consumer goroutine for one topic. It is a free
+// function because Go methods cannot have type parameters.
+func startConsumer[T any](c *Consumers, ctx context.Context, topic string, handler func(context.Context, T) error) {
+	reader := c.newReader(topic)
+	c.wg.Add(1)
+	go func() {
+		defer c.wg.Done()
+		runConsumer(ctx, c, reader, handler)
+	}()
+}
+
+// runConsumer reads messages, decodes them into T, and invokes handler. A
+// message that cannot be decoded is dead-lettered (not silently dropped) and a
+// handler error is logged; in both cases the offset is committed so a poison
+// message never blocks the partition.
+func runConsumer[T any](ctx context.Context, c *Consumers, reader *kgo.Reader, handler func(context.Context, T) error) {
 	for {
 		m, err := reader.FetchMessage(ctx)
 		if err != nil {
 			if ctx.Err() != nil {
 				return // shutting down
 			}
-			log.Error("kafka fetch failed", zap.String("topic", reader.Config().Topic), zap.Error(err))
+			c.log.Error("kafka fetch failed", zap.String("topic", reader.Config().Topic), zap.Error(err))
 			continue
 		}
 
 		var payload T
-		if err := json.Unmarshal(m.Value, &payload); err != nil {
-			log.Error("kafka message decode failed", zap.String("topic", m.Topic), zap.Error(err))
+		if derr := json.Unmarshal(m.Value, &payload); derr != nil {
+			c.log.Error("kafka message decode failed; dead-lettering",
+				zap.String("topic", m.Topic), zap.Error(derr))
+			c.deadLetter(ctx, m.Topic, m.Key, m.Value)
 		} else if herr := handler(ctx, payload); herr != nil {
-			log.Error("kafka message handler failed", zap.String("topic", m.Topic), zap.Error(herr))
+			c.log.Error("kafka message handler failed", zap.String("topic", m.Topic), zap.Error(herr))
 		}
 
 		if err := reader.CommitMessages(ctx, m); err != nil && ctx.Err() == nil {
-			log.Error("kafka commit failed", zap.String("topic", m.Topic), zap.Error(err))
+			c.log.Error("kafka commit failed", zap.String("topic", m.Topic), zap.Error(err))
 		}
 	}
 }

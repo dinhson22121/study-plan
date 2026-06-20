@@ -14,6 +14,24 @@ func newManager(repo *fakeRepo, pub *fakePublisher) *Manager {
 	return NewManager(repo, d)
 }
 
+func TestManager_BroadcastDedupesSameDayRepeat(t *testing.T) {
+	repo := newFakeRepo()
+	repo.activeUsers = []string{"u1", "u2"}
+	pub := &fakePublisher{}
+	m := newManager(repo, pub) // single dispatcher/idempotency store
+
+	// Two identical broadcasts on the same day must enqueue each user once.
+	if _, err := m.Broadcast(context.Background(), BroadcastInput{Type: domain.TypeAdminBroadcast, TemplateCode: "ADMIN_BROADCAST_V1"}); err != nil {
+		t.Fatalf("first broadcast: %v", err)
+	}
+	if _, err := m.Broadcast(context.Background(), BroadcastInput{Type: domain.TypeAdminBroadcast, TemplateCode: "ADMIN_BROADCAST_V1"}); err != nil {
+		t.Fatalf("second broadcast: %v", err)
+	}
+	if got := len(pub.onTopic(domain.TopicSchedule)); got != 2 {
+		t.Fatalf("expected 2 enqueues (deduped), got %d", got)
+	}
+}
+
 func TestManager_ListPreferencesDefaultsWhenEmpty(t *testing.T) {
 	repo := newFakeRepo()
 	m := newManager(repo, &fakePublisher{})

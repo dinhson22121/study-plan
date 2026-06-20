@@ -16,8 +16,12 @@ Firebase Cloud Messaging · JWT auth · golang-migrate · zap.
 | 0 | Foundation (config, shared errors/eventbus/middleware, pkg adapters, server bootstrap) | ✅ Done |
 | 1 | Auth + User (JWT access/refresh, registration event, profile) | ✅ Done |
 | 2 | Notification (Kafka pipeline, FCM w/ retry, scheduler, DLQ, preferences) | ✅ Done |
-| 3 | Learning core (curriculum, question, content) | ⏳ Next |
-| 4–6 | Assessment/planning, activity loop, hardening | ⬜ Planned |
+| 3 | Learning core (curriculum, question bank, content/lessons) | ✅ Done |
+| 4 | Assessment & planning (placement test, goal, studyplan generation) | ✅ Done |
+| 5 | Activity loop (quiz, progress/streaks/achievements, analytics, re-engagement) | ✅ Done |
+| 6 | Hardening (e2e test, security/code review + fixes, observability) | ✅ Done |
+
+All 12 PRD modules implemented. See [SECURITY.md](SECURITY.md) for the review findings and fixes.
 
 ## Prerequisites
 
@@ -54,7 +58,12 @@ make cover             # unit tests + coverage summary
 make test-integration  # adapter integration tests (requires `make up`)
 ```
 
-Unit tests use in-memory fakes and run without Docker. Integration tests are
+Unit tests use in-memory fakes and run without Docker. The full-flow **e2e test**
+lives in `internal/bootstrap` (register → goal → studyplan → quiz → progress →
+analytics over the real router). Coverage of domain + application (business
+logic) runs **68–97%** per package (~83% avg); repository adapters and HTTP
+handlers are covered by the integration/e2e tests rather than unit tests, so the
+unit-only headline is lower by design. Integration tests are
 gated behind `//go:build integration` and skip unless `EDU_TEST_POSTGRES_URL` /
 `EDU_TEST_REDIS_URL` are set (the Makefile target sets them).
 
@@ -75,6 +84,38 @@ gated behind `//go:build integration` and skip unless `EDU_TEST_POSTGRES_URL` /
 | `PUT`  | `/api/v1/notifications/preferences/:type` | JWT | Enable/disable a notification type |
 | `GET`  | `/api/v1/notifications/history` | JWT | Paginated delivery history |
 | `POST` | `/api/v1/admin/notifications/broadcast` | ADMIN | Broadcast to all active users |
+| `GET/POST` | `/api/v1/curriculum/subjects` | JWT / ADMIN | List / create subjects |
+| `GET/POST` | `/api/v1/curriculum/subjects/:id/chapters` | JWT / ADMIN | List / create chapters |
+| `GET/POST` | `/api/v1/curriculum/chapters/:id/topics` | JWT / ADMIN | List / create topics |
+| `GET` | `/api/v1/curriculum/topics/:id` | JWT | Get a topic |
+| `POST` | `/api/v1/questions` | ADMIN | Author a question (MCQ/free-text) |
+| `GET` | `/api/v1/questions/:id` | JWT | Get a question (answers hidden from students) |
+| `GET` | `/api/v1/questions?topic_id=&difficulty=&limit=` | JWT | Query the question bank |
+| `GET/POST` | `/api/v1/topics/:id/lessons` | JWT / ADMIN | List / create lessons |
+| `GET` | `/api/v1/lessons/:id` | JWT | Get a lesson with content items |
+| `PUT/GET` | `/api/v1/goals` | JWT | Set / get learning goal (onboarding) |
+| `POST` | `/api/v1/placement/tests` | JWT | Start a placement test for a subject |
+| `POST` | `/api/v1/placement/tests/:id/submit` | JWT | Submit & grade → assessed level |
+| `GET` | `/api/v1/placement/results` | JWT | List placement results |
+| `POST` | `/api/v1/studyplans/generate` | JWT | Generate a study plan for a subject |
+| `GET` | `/api/v1/studyplans` | JWT | List own study plans |
+| `GET` | `/api/v1/studyplans/:id` | JWT | Get a study plan with milestones |
+| `POST` | `/api/v1/quizzes` | JWT | Start a topic quiz |
+| `POST` | `/api/v1/quizzes/:id/submit` | JWT | Submit & grade → result with review |
+| `GET` | `/api/v1/quizzes/:id` | JWT | Get a quiz result |
+| `GET` | `/api/v1/quizzes` | JWT | Quiz history |
+| `GET` | `/api/v1/progress` | JWT | Streak + per-topic mastery overview |
+| `GET` | `/api/v1/progress/topics` | JWT | Per-topic progress |
+| `GET` | `/api/v1/analytics/me` | JWT | Dashboard (completion, quiz avg, streak) |
+| `GET` | `/api/v1/analytics/me/weak-topics` | JWT | Lowest-scoring topics |
+
+### Activity loop
+
+`quiz submit → graded result + review → quiz.completed (eventbus)`. Two subscribers react: **progress** updates per-topic mastery (≥80% = mastered) and the daily streak, awarding `TOPIC_COMPLETED / STREAK_7 / STREAK_30 / PERFECT_SCORE` achievements (recorded once) that push an `ACHIEVEMENT` notification; **analytics** appends an activity event. The notification re-engagement cron reads analytics' inactive-user feed (≥3 days idle) and enqueues `REENGAGEMENT` pushes.
+
+### Plan generation flow
+
+`goal (timing) + placement (level) + curriculum (topics) → studyplan.GeneratePlan → weekly milestones → enqueues a STUDY_PLAN reminder via the notification pipeline`. Levels: `BEGINNER` (<40%), `INTERMEDIATE` (40–75%), `ADVANCED` (>75%). Milestones distribute topics sequentially (curriculum order) across the weeks until the goal's target date.
 
 ### Notification pipeline
 

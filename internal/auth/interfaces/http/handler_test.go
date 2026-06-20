@@ -67,7 +67,7 @@ func newTestRouter() *gin.Engine {
 		eventbus.New(),
 	)
 	r := gin.New()
-	NewHandler(svc).Routes(r.Group("/api/v1"))
+	NewHandler(svc, svc.ValidateAccessToken).Routes(r.Group("/api/v1"))
 	return r
 }
 
@@ -118,6 +118,15 @@ func TestLoginEndpoint_FlowAndWrongPassword(t *testing.T) {
 	bad := doJSON(r, http.MethodPost, "/api/v1/auth/login", gin.H{"email": "a@b.com", "password": "wrongpass"})
 	if bad.Code != http.StatusUnauthorized {
 		t.Fatalf("want 401 on wrong password, got %d", bad.Code)
+	}
+}
+
+func TestLogoutEndpoint_RequiresAuth(t *testing.T) {
+	r := newTestRouter()
+	// No Authorization header -> logout must be rejected even with a refresh token.
+	w := doJSON(r, http.MethodPost, "/api/v1/auth/logout", gin.H{"refresh_token": "whatever"})
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("want 401 for unauthenticated logout, got %d", w.Code)
 	}
 }
 
