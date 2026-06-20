@@ -17,6 +17,8 @@ phải tuân theo các quy tắc dưới đây.
    KHÔNG tạo nhiều ảnh rời, KHÔNG mỗi màn một file.
 4. Khi người dùng yêu cầu chỉnh nhỏ (1 màu, 1 chữ, 1 phần tử): **chỉ sửa đúng phần đó**,
    không tự ý "cải thiện" hay redesign phần khác.
+5. Nếu repo có các file `app_design.md`, `screen-map.md`, `review-checklist.md`,
+   `brand-tokens.css`: **phải đọc và ưu tiên chúng** trước khi tự suy diễn.
 
 ---
 
@@ -68,3 +70,23 @@ tiến độ tuần) → Lộ trình học (dạng cây / dạng thẻ) → Bài
 - Đừng để chữ < 12px hoặc nút < 44px.
 - Đừng tạo nội dung "độn" cho đầy chỗ — mỗi phần tử phải có lý do tồn tại.
 - Đừng tự thêm màn hình/tính năng không được yêu cầu — hãy đề xuất rồi hỏi.
+
+---
+
+## 6. OUTPUT CONTRACT / HANDOFF
+
+Sau khi tạo `prototype.html`, bạn phải trả thêm trong câu trả lời:
+
+1. **Danh sách màn hình cuối cùng**
+2. **Screen-to-feature mapping**
+3. **Component breakdown** (vd: card, progress ring, quiz option, chart card, nav item)
+4. **Các giả định đã tự đưa ra**
+5. **Các trạng thái đã xử lý**:
+   - loading
+   - empty
+   - error
+   - completed
+   - disabled / locked
+
+Nếu người dùng có `review-checklist.md`, hãy tự đối chiếu output theo checklist đó
+trước khi kết thúc.
