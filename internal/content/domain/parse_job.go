@@ -13,20 +13,20 @@ const (
 )
 
 type ParseJob struct {
-	ID            string
-	AssetID       string
-	Status        ParseJobStatus
-	ParserVersion string
-	AttemptCount  int
-	ErrorMessage  string
-	ClaimedBy     string
-	ClaimedAt     *time.Time
-	StartedAt     *time.Time
-	FinishedAt    *time.Time
-	RawText       string
-	CreatedBy     string
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	ID            string         `json:"id"`
+	AssetID       string         `json:"asset_id"`
+	Status        ParseJobStatus `json:"status"`
+	ParserVersion string         `json:"parser_version"`
+	AttemptCount  int            `json:"attempt_count"`
+	ErrorMessage  string         `json:"error_message"`
+	ClaimedBy     string         `json:"claimed_by"`
+	ClaimedAt     *time.Time     `json:"claimed_at"`
+	StartedAt     *time.Time     `json:"started_at"`
+	FinishedAt    *time.Time     `json:"finished_at"`
+	RawText       string         `json:"-"`
+	CreatedBy     string         `json:"created_by"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
 }
 
 func NewParseJob(id, assetID, createdBy string, now time.Time) *ParseJob {

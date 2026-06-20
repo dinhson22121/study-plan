@@ -12,10 +12,10 @@ const (
 )
 
 type Subject struct {
-	ID         string
-	Code       string
-	Name       string
-	GradeLevel int
+	ID         string `json:"id"`
+	Code       string `json:"code"`
+	Name       string `json:"name"`
+	GradeLevel int    `json:"grade_level"`
 }
 
 func NewSubject(id, code, name string, gradeLevel int) (*Subject, error) {
@@ -33,10 +33,10 @@ func NewSubject(id, code, name string, gradeLevel int) (*Subject, error) {
 }
 
 type Chapter struct {
-	ID         string
-	SubjectID  string
-	Title      string
-	OrderIndex int
+	ID         string `json:"id"`
+	SubjectID  string `json:"subject_id"`
+	Title      string `json:"title"`
+	OrderIndex int    `json:"order_index"`
 }
 
 func NewChapter(id, subjectID, title string, orderIndex int) (*Chapter, error) {
@@ -53,10 +53,10 @@ func NewChapter(id, subjectID, title string, orderIndex int) (*Chapter, error) {
 }
 
 type Topic struct {
-	ID         string
-	ChapterID  string
-	Title      string
-	OrderIndex int
+	ID         string `json:"id"`
+	ChapterID  string `json:"chapter_id"`
+	Title      string `json:"title"`
+	OrderIndex int    `json:"order_index"`
 }
 
 func NewTopic(id, chapterID, title string, orderIndex int) (*Topic, error) {

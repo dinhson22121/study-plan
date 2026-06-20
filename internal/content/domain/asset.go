@@ -29,21 +29,21 @@ const (
 )
 
 type UploadedAsset struct {
-	ID               string
-	ObjectKey        string
-	BucketName       string
-	OriginalFilename string
-	ContentType      string
-	FileSize         int64
-	ChecksumSHA256   string
-	Status           AssetStatus
-	UploadedBy       string
-	EntityType       AssetEntityType
-	EntityID         string
-	StorageProvider  string
-	CreatedAt        time.Time
-	VerifiedAt       *time.Time
-	DeletedAt        *time.Time
+	ID               string          `json:"id"`
+	ObjectKey        string          `json:"object_key"`
+	BucketName       string          `json:"bucket_name"`
+	OriginalFilename string          `json:"original_filename"`
+	ContentType      string          `json:"content_type"`
+	FileSize         int64           `json:"file_size"`
+	ChecksumSHA256   string          `json:"checksum_sha256"`
+	Status           AssetStatus     `json:"status"`
+	UploadedBy       string          `json:"uploaded_by"`
+	EntityType       AssetEntityType `json:"entity_type"`
+	EntityID         string          `json:"entity_id"`
+	StorageProvider  string          `json:"storage_provider"`
+	CreatedAt        time.Time       `json:"created_at"`
+	VerifiedAt       *time.Time      `json:"verified_at"`
+	DeletedAt        *time.Time      `json:"deleted_at"`
 }
 
 func NewPendingAsset(id, objectKey, bucket, filename, contentType, uploadedBy, checksumSHA256 string, now time.Time) (*UploadedAsset, error) {
