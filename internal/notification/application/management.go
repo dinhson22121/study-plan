@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -85,13 +86,18 @@ func (m *Manager) Broadcast(ctx context.Context, in BroadcastInput) (int, error)
 	if err != nil {
 		return 0, err
 	}
+	// A deterministic per-day broadcast id gives each user a stable idempotency
+	// key, so a retried or accidentally-repeated same-day broadcast of the same
+	// template does not double-send.
+	broadcastID := fmt.Sprintf("broadcast-%s-%s-%s", in.Type, in.TemplateCode, m.now().Format("2006-01-02"))
 	count := 0
 	for _, uid := range userIDs {
 		err := m.dispatcher.Enqueue(ctx, EnqueueInput{
-			UserID:       uid,
-			Type:         in.Type,
-			TemplateCode: in.TemplateCode,
-			Variables:    in.Variables,
+			UserID:         uid,
+			Type:           in.Type,
+			TemplateCode:   in.TemplateCode,
+			Variables:      in.Variables,
+			IdempotencyKey: broadcastID + ":" + uid,
 		})
 		if err != nil {
 			return count, err

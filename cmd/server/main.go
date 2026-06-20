@@ -1,6 +1,6 @@
 // Command server is the edu-app modular-monolith entrypoint. It loads config,
-// connects infrastructure, wires every domain module through a shared Deps
-// container, and serves HTTP with graceful shutdown.
+// connects infrastructure, wires every domain module (via bootstrap), and serves
+// HTTP with graceful shutdown.
 package main
 
 import (
@@ -12,16 +12,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
 	"github.com/son-ngo/edu-app/config"
 	"github.com/son-ngo/edu-app/internal/app"
-	"github.com/son-ngo/edu-app/internal/auth"
-	"github.com/son-ngo/edu-app/internal/notification"
+	"github.com/son-ngo/edu-app/internal/bootstrap"
 	"github.com/son-ngo/edu-app/internal/shared/eventbus"
-	"github.com/son-ngo/edu-app/internal/shared/middleware"
-	"github.com/son-ngo/edu-app/internal/user"
 	"github.com/son-ngo/edu-app/pkg/kafka"
 	"github.com/son-ngo/edu-app/pkg/postgres"
 	"github.com/son-ngo/edu-app/pkg/redis"
@@ -76,7 +72,7 @@ func run(log *zap.Logger) error {
 	workerCtx, cancelWorkers := context.WithCancel(ctx)
 	defer cancelWorkers()
 
-	router, notifModule := buildRouter(deps)
+	router, notifModule := bootstrap.BuildRouter(deps)
 	if err := notifModule.Start(workerCtx); err != nil {
 		return err
 	}
@@ -84,29 +80,6 @@ func run(log *zap.Logger) error {
 
 	srv := &http.Server{Addr: cfg.Port, Handler: router}
 	return serveWithGracefulShutdown(srv, log)
-}
-
-// buildRouter assembles the Gin engine, global middleware, the health check, and
-// every domain module under /api/v1. It returns the notification module so the
-// caller can drive its background workers' lifecycle.
-func buildRouter(deps *app.Deps) (*gin.Engine, *notification.Module) {
-	if deps.Cfg.Env == "production" {
-		gin.SetMode(gin.ReleaseMode)
-	}
-	router := gin.New()
-	router.Use(middleware.Logger(deps.Log), middleware.Recovery(deps.Log))
-
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
-	})
-
-	v1 := router.Group("/api/v1")
-	// Register all domain modules. New modules are added here as phases land.
-	auth.Register(v1, deps)
-	user.Register(v1, deps)
-	notifModule := notification.Register(v1, deps)
-
-	return router, notifModule
 }
 
 func serveWithGracefulShutdown(srv *http.Server, log *zap.Logger) error {

@@ -40,7 +40,7 @@ Inter-module contracts are **domain events** (the eventbus / Kafka), never direc
 
 ---
 
-> **Progress:** Phase 0 ✅ · Phase 1 ✅ · Phase 2 ✅ · Phase 3 next.
+> **Progress:** Phase 0 ✅ · Phase 1 ✅ · Phase 2 ✅ · Phase 3 ✅ · Phase 4 ✅ · Phase 5 ✅ · Phase 6 ✅ — all phases complete.
 
 ## Phase 0 — Foundation & tooling ✅
 
@@ -84,7 +84,7 @@ Full pipeline per PRD §4–§7, §9.
 
 **Exit:** end-to-end — scheduled trigger lands as a push via real FCM (creds present) or mock (tests); DLQ + log statuses correct.
 
-## Phase 3 — Learning core (curriculum → question → content)
+## Phase 3 — Learning core (curriculum → question → content) ✅
 
 Static/catalog domains first; they have no upstream deps beyond identity.
 
@@ -93,21 +93,21 @@ Static/catalog domains first; they have no upstream deps beyond identity.
 - **content:** lessons/content items attached to topics; read APIs.
 - Migrations + repos + handlers + TDD per module (domain rules, repo integration, handlers).
 
-## Phase 4 — Assessment & planning (placement → goal → studyplan)
+## Phase 4 — Assessment & planning (placement → goal → studyplan) ✅
 
 - **placement:** placement test assembled from `question`; on submit produce `PlacementResult` + `PlacementCompletedEvent`.
 - **goal:** create/track goals per subject; validation (target date future, level bounds).
 - **studyplan:** generate plan from goal+placement; milestones; **emit `StudyPlanReminderDue`** consumed by notification scheduler (PRD §7 step 1). Register with Kafka producer.
 - TDD: plan generation logic, milestone scheduling, event emission.
 
-## Phase 5 — Activity loop (quiz → progress → analytics)
+## Phase 5 — Activity loop (quiz → progress → analytics) ✅
 
 - **quiz:** session assembly, grading, scoring; weekly quiz; emit `QuizCompletedEvent`.
 - **progress:** consume quiz/lesson events → update mastery & streaks; emit `AchievementUnlockedEvent` / `MilestoneReached` (→ achievement notifications).
 - **analytics:** read-model aggregations (activity, weak topics, last-active) feeding re-engagement batch + dashboards.
 - TDD: grading correctness, streak math, achievement triggers, analytics aggregation.
 
-## Phase 6 — Hardening & integration
+## Phase 6 — Hardening & integration ✅
 
 - Full end-to-end integration test across modules (register → placement → goal → studyplan → quiz → progress → achievement notification).
 - Scaling toggles from PRD §10 (partition count, consumer count config-driven).

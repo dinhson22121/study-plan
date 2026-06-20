@@ -28,7 +28,7 @@ type FCMAdapter struct {
 	repo       domain.Repository
 	log        *zap.Logger
 	maxRetries int
-	sleep      func(time.Duration)
+	wait       func(ctx context.Context, d time.Duration) error
 }
 
 // NewFCMAdapter wires the adapter to a real sender and repository.
@@ -38,7 +38,18 @@ func NewFCMAdapter(sender pushSender, repo domain.Repository, log *zap.Logger) *
 		repo:       repo,
 		log:        log,
 		maxRetries: 3,
-		sleep:      time.Sleep,
+		wait:       ctxSleep,
+	}
+}
+
+// ctxSleep waits for d or until ctx is cancelled (returning ctx.Err()), so a
+// shutdown mid-backoff is not blocked for the full delay.
+func ctxSleep(ctx context.Context, d time.Duration) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(d):
+		return nil
 	}
 }
 
@@ -63,7 +74,9 @@ func (a *FCMAdapter) Send(ctx context.Context, token, title, body string, data m
 
 		// Exponential backoff before the next attempt: 1s, 2s, 4s.
 		if attempt < a.maxRetries-1 {
-			a.sleep(time.Duration(1<<attempt) * time.Second)
+			if werr := a.wait(ctx, time.Duration(1<<attempt)*time.Second); werr != nil {
+				return shared.ErrMaxRetriesExceeded.WithCause(werr)
+			}
 		}
 	}
 	return shared.ErrMaxRetriesExceeded.WithCause(lastErr)

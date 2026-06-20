@@ -7,23 +7,28 @@ import (
 	"github.com/son-ngo/edu-app/internal/auth/application"
 	"github.com/son-ngo/edu-app/internal/shared/domain"
 	"github.com/son-ngo/edu-app/internal/shared/httpx"
+	"github.com/son-ngo/edu-app/internal/shared/middleware"
 )
 
 // Handler adapts HTTP requests to the auth application service.
 type Handler struct {
-	svc *application.Service
+	svc      *application.Service
+	validate middleware.TokenValidator
 }
 
-// NewHandler builds the auth HTTP handler.
-func NewHandler(svc *application.Service) *Handler { return &Handler{svc: svc} }
+// NewHandler builds the auth HTTP handler. validate guards the logout route.
+func NewHandler(svc *application.Service, validate middleware.TokenValidator) *Handler {
+	return &Handler{svc: svc, validate: validate}
+}
 
-// Routes registers the auth endpoints under the given group.
+// Routes registers the auth endpoints under the given group. logout requires a
+// valid access token so a leaked refresh token alone cannot revoke a session.
 func (h *Handler) Routes(rg *gin.RouterGroup) {
 	g := rg.Group("/auth")
 	g.POST("/register", h.register)
 	g.POST("/login", h.login)
 	g.POST("/refresh", h.refresh)
-	g.POST("/logout", h.logout)
+	g.POST("/logout", middleware.Auth(h.validate), h.logout)
 }
 
 type credentialsRequest struct {
