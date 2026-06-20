@@ -1,0 +1,27 @@
+# golangci-lint configuration for edu-app.
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gosimple
+    - revive
+    - misspell
+    - bodyclose
+    - gosec
+
+issues:
+  exclude-rules:
+    # Test files may ignore errors on setup helpers for brevity.
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+  max-issues-per-linter: 0
+  max-same-issues: 0

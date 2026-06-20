@@ -1,0 +1,31 @@
+# Default configuration. Override any value with EDU_* environment variables,
+# e.g. EDU_POSTGRES_URL, EDU_JWT_SECRET, EDU_KAFKA_BROKERS.
+# Secrets here are for LOCAL DEVELOPMENT ONLY — never commit real secrets.
+env: development
+port: ":8080"
+timezone: "Asia/Ho_Chi_Minh"
+
+postgres:
+  url: "postgres://eduapp:secret@localhost:5432/eduapp?sslmode=disable"
+  max_conns: 10
+  min_conns: 2
+  migration_dir: "migrations"
+
+redis:
+  url: "redis://localhost:6379/0"
+
+kafka:
+  brokers:
+    - "localhost:9092"
+  group_id: "edu-app"
+  partitions: 1
+
+jwt:
+  secret: "dev-only-change-me-in-production"
+  access_ttl: "15m"
+  refresh_ttl: "720h"
+  issuer: "edu-app"
+
+fcm:
+  credentials_file: "config/firebase-service-account.json"
+  project_id: ""

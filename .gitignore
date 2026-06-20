@@ -1,1 +1,21 @@
 .DS_Store
+
+# Build artifacts
+/server
+/migrate
+*.exe
+dist/
+
+# Test / coverage output
+coverage.out
+*.out
+
+# Secrets — never commit
+config/firebase-service-account.json
+*.local.yaml
+.env
+.env.*
+
+# Editor
+.idea/
+.vscode/
