@@ -50,6 +50,33 @@ Configuration is read from `config/config.yaml`, overridable by `EDU_*` env vars
 (e.g. `EDU_POSTGRES_URL`, `EDU_JWT_SECRET`, `EDU_KAFKA_BROKERS`). The Makefile
 exports sensible local defaults.
 
+## Self-hosted deploy (Docker)
+
+The whole stack — Postgres, Redis, Kafka, **the app**, and a one-shot migration
+job — runs from `docker-compose.yml` with the multi-stage [`Dockerfile`](Dockerfile):
+
+```bash
+# Build the image, start infra, auto-apply migrations, then start the API.
+EDU_JWT_SECRET=$(openssl rand -hex 32) make deploy
+
+curl localhost:8080/health
+make deploy-logs   # tail app logs
+make deploy-down   # stop (add `docker compose down -v` to drop data)
+```
+
+`make deploy` runs `docker compose up -d --build`. Startup order is enforced:
+`postgres/redis/kafka` become healthy → the `migrate` job applies all migrations →
+the `app` starts and provisions Kafka topics. Override secrets/URLs via the
+environment or a `.env` file (the compose `x-app-env` block has the defaults).
+
+**Notes**
+- Set a real `EDU_JWT_SECRET` — the compose default is a placeholder.
+- For real FCM push, drop `config/firebase-service-account.json` beside the
+  compose file and uncomment the volume mount under the `app` service; otherwise
+  a logging fallback sender is used.
+- Kafka advertises two listeners: `kafka:29092` (in-network, used by the app) and
+  `localhost:9092` (host tools).
+
 ## Testing
 
 ```bash
