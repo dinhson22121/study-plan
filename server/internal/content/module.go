@@ -1,6 +1,8 @@
 package content
 
 import (
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
@@ -8,12 +10,16 @@ import (
 	"github.com/son-ngo/edu-app/internal/content/application"
 	"github.com/son-ngo/edu-app/internal/content/infrastructure"
 	contenthttp "github.com/son-ngo/edu-app/internal/content/interfaces/http"
+	"github.com/son-ngo/edu-app/internal/shared/cache"
 	s3pkg "github.com/son-ngo/edu-app/pkg/s3"
 )
 
+const cacheTTL = 10 * time.Minute
+
 func Register(rg *gin.RouterGroup, deps *app.Deps) {
 	repo := infrastructure.NewPgRepository(deps.DB)
-	contenthttp.NewHandler(application.NewService(repo), deps.AuthValidate).Routes(rg)
+	svc := application.NewService(repo, application.WithCache(cache.NewRedisCache(deps.Redis), cacheTTL))
+	contenthttp.NewHandler(svc, deps.AuthValidate).Routes(rg)
 
 	registerUploads(rg, deps)
 }

@@ -45,6 +45,16 @@ upload:
 ratelimit:
   auth_requests: 10 # max auth attempts per window per client IP
   auth_window: "1m"
+  api_requests: 120 # max requests per window per client IP across all /api/v1
+  api_window: "1m"
+
+# Proxy hops trusted for X-Forwarded-For (so per-IP rate limiting sees the real
+# client behind nginx/ALB). Defaults to common private ranges.
+trusted_proxies:
+  - "127.0.0.0/8"
+  - "10.0.0.0/8"
+  - "172.16.0.0/12"
+  - "192.168.0.0/16"
 
 sentry:
   dsn: "" # empty = Sentry disabled (no-op). Set EDU_SENTRY_DSN in prod.

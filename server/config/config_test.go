@@ -66,6 +66,28 @@ func TestLoad_FailsWhenRequiredMissing(t *testing.T) {
 	}
 }
 
+func TestLoad_RateLimitAndProxyDefaults(t *testing.T) {
+	chdirTemp(t)
+	t.Setenv("EDU_POSTGRES_URL", "postgres://u:p@db:5432/x")
+	t.Setenv("EDU_REDIS_URL", "redis://cache:6379/0")
+	t.Setenv("EDU_KAFKA_BROKERS", "b1:9092")
+	t.Setenv("EDU_JWT_SECRET", "supersecret")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.RateLimit.APIRequests != 120 {
+		t.Fatalf("expected default api_requests 120, got %d", cfg.RateLimit.APIRequests)
+	}
+	if cfg.RateLimit.APIWindow != time.Minute {
+		t.Fatalf("expected default api_window 1m, got %v", cfg.RateLimit.APIWindow)
+	}
+	if len(cfg.TrustedProxies) == 0 {
+		t.Fatalf("expected default trusted_proxies to be set")
+	}
+}
+
 func setBaseProdEnv(t *testing.T) {
 	t.Helper()
 	chdirTemp(t)

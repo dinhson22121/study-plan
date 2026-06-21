@@ -21,6 +21,7 @@ import (
 	"github.com/son-ngo/edu-app/internal/shared/audit"
 	"github.com/son-ngo/edu-app/internal/shared/metrics"
 	"github.com/son-ngo/edu-app/internal/shared/middleware"
+	"github.com/son-ngo/edu-app/internal/shared/ratelimit"
 	"github.com/son-ngo/edu-app/internal/studyplan"
 	"github.com/son-ngo/edu-app/internal/user"
 )
@@ -34,6 +35,11 @@ func BuildRouter(deps *app.Deps) (*gin.Engine, *notification.Module) {
 	}
 
 	router := gin.New()
+	// Trust proxy hops so c.ClientIP() (used for per-IP rate limiting) reflects
+	// the real client behind nginx/ALB rather than the proxy address.
+	if len(deps.Cfg.TrustedProxies) > 0 {
+		_ = router.SetTrustedProxies(deps.Cfg.TrustedProxies)
+	}
 	router.Use(middleware.Logger(deps.Log), middleware.Recovery(deps.Log), deps.Metrics.Middleware())
 
 	router.GET("/metrics", gin.WrapH(deps.Metrics.Handler()))
@@ -63,6 +69,12 @@ func BuildRouter(deps *app.Deps) (*gin.Engine, *notification.Module) {
 	})
 
 	v1 := router.Group("/api/v1")
+	// Coarse per-IP throttle across the whole API (health/metrics are outside
+	// this group, so probes/scrapes are never rate-limited). Auth routes add a
+	// stricter limit on top. Fails open if Redis is unreachable.
+	apiLimiter := ratelimit.NewRedisLimiter(
+		deps.Redis, deps.Cfg.RateLimit.APIRequests, deps.Cfg.RateLimit.APIWindow)
+	v1.Use(middleware.RateLimit(apiLimiter, "api"))
 	// AuditAdmin records admin mutations post-Next. It is registered at the
 	// group level (before per-route Auth in the chain) but reads role/user from
 	// the gin context AFTER c.Next(), by which point per-route Auth has set
