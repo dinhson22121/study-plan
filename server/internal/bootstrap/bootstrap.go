@@ -18,6 +18,7 @@ import (
 	"github.com/son-ngo/edu-app/internal/progress"
 	"github.com/son-ngo/edu-app/internal/question"
 	"github.com/son-ngo/edu-app/internal/quiz"
+	"github.com/son-ngo/edu-app/internal/shared/audit"
 	"github.com/son-ngo/edu-app/internal/shared/metrics"
 	"github.com/son-ngo/edu-app/internal/shared/middleware"
 	"github.com/son-ngo/edu-app/internal/studyplan"
@@ -62,6 +63,11 @@ func BuildRouter(deps *app.Deps) (*gin.Engine, *notification.Module) {
 	})
 
 	v1 := router.Group("/api/v1")
+	// AuditAdmin records admin mutations post-Next. It is registered at the
+	// group level (before per-route Auth in the chain) but reads role/user from
+	// the gin context AFTER c.Next(), by which point per-route Auth has set
+	// them. See middleware.AuditAdmin for the gin-context-lifecycle rationale.
+	v1.Use(middleware.AuditAdmin(audit.NewPgRecorder(deps.DB), deps.Log))
 	auth.Register(v1, deps)
 	user.Register(v1, deps)
 	curriculum.Register(v1, deps)
