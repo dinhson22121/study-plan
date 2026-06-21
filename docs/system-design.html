@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI Study Coach — System Design</title>
+<style>
+  :root{
+    --bg:#0f1729; --panel:#ffffff; --ink:#181b34; --ink2:#475569; --muted:#7c8398;
+    --brand:#3b5bff; --brand2:#7c5cff; --accent:#15b981; --warn:#f5871f; --danger:#f0474b;
+    --line:#e3e8f3; --soft:#eef2ff; --code:#0b1220;
+    --radius:14px; --maxw:1080px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+    color:var(--ink);background:#f5f7fc;line-height:1.6;font-size:15px}
+  header.hero{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;
+    padding:48px 24px 40px}
+  header.hero .wrap{max-width:var(--maxw);margin:0 auto}
+  header.hero h1{margin:0 0 6px;font-size:30px;letter-spacing:-.3px}
+  header.hero p{margin:4px 0;opacity:.92}
+  .pill{display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    border-radius:999px;padding:3px 12px;font-size:12px;margin:8px 6px 0 0}
+  main{max-width:var(--maxw);margin:0 auto;padding:0 20px 80px}
+  nav.toc{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px 22px;margin:24px 0;columns:2;column-gap:32px}
+  nav.toc a{display:block;color:var(--ink2);text-decoration:none;padding:3px 0;font-size:14px;
+    break-inside:avoid}
+  nav.toc a:hover{color:var(--brand)}
+  nav.toc .grp{font-weight:700;color:var(--ink);margin-top:8px;font-size:13px;text-transform:uppercase;letter-spacing:.5px}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:26px 28px;margin:18px 0;box-shadow:0 10px 28px -22px rgba(28,38,76,.25)}
+  h2{font-size:22px;margin:0 0 4px;padding-bottom:10px;border-bottom:2px solid var(--soft);color:var(--ink)}
+  h2 .n{color:var(--brand);font-weight:800;margin-right:8px}
+  h3{font-size:17px;margin:22px 0 8px;color:var(--ink)}
+  p{color:var(--ink2)}
+  ul,ol{color:var(--ink2)}
+  code{background:var(--soft);color:#2745e8;padding:1px 6px;border-radius:6px;font-size:13px;
+    font-family:"JetBrains Mono",Consolas,monospace}
+  pre{background:var(--code);color:#d6e0ff;padding:14px 16px;border-radius:10px;overflow-x:auto;
+    font-size:12.5px;font-family:"JetBrains Mono",Consolas,monospace;line-height:1.5}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--soft);color:var(--ink);font-weight:700}
+  tr:hover td{background:#fafbff}
+  .tag{display:inline-block;border-radius:6px;padding:1px 8px;font-size:11.5px;font-weight:700}
+  .tag.pub{background:#e7f8f1;color:#0a8a5f}
+  .tag.auth{background:#e8edff;color:#2745e8}
+  .tag.admin{background:#fdeee0;color:#b5660f}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin:12px 0}
+  .card{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#fff}
+  .card h4{margin:0 0 4px;font-size:14px;color:var(--brand)}
+  .card p{margin:0;font-size:12.5px}
+  figure{margin:18px 0}
+  .diagram{border:1px solid var(--line);border-radius:12px;background:#fbfcff;padding:14px;overflow-x:auto}
+  figure figcaption{color:var(--muted);font-size:12.5px;margin-top:8px;text-align:center}
+  .legend{font-size:12px;color:var(--muted);margin-top:6px}
+  .callout{border-left:4px solid var(--brand);background:var(--soft);padding:10px 14px;border-radius:0 8px 8px 0;margin:12px 0;font-size:13.5px}
+  .callout.warn{border-color:var(--warn);background:#fdf4ea}
+  /* SVG shared */
+  svg{max-width:100%;height:auto;font-family:"Segoe UI",system-ui,sans-serif}
+  .s-node{fill:#fff;stroke:#3b5bff;stroke-width:1.5;rx:8}
+  .s-node-soft{fill:#eef2ff;stroke:#c7d2fe;stroke-width:1.2}
+  .s-node-ext{fill:#fff7ed;stroke:#f5871f;stroke-width:1.4}
+  .s-node-data{fill:#ecfdf5;stroke:#15b981;stroke-width:1.4}
+  .s-t{fill:#181b34;font-size:12px}
+  .s-t-sm{fill:#475569;font-size:10.5px}
+  .s-t-w{fill:#fff;font-size:12px;font-weight:600}
+  .s-life{stroke:#c7d2fe;stroke-width:1.2;stroke-dasharray:3 4}
+  .s-flow{stroke:#475569;stroke-width:1.4;fill:none}
+  .s-flow-ret{stroke:#94a3b8;stroke-width:1.2;stroke-dasharray:5 4;fill:none}
+  .s-msg{fill:#334155;font-size:11px}
+  .s-actor{fill:#3b5bff}
+  @media(max-width:720px){nav.toc{columns:1}section{padding:18px}}
+  footer{max-width:var(--maxw);margin:0 auto;padding:30px 20px;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+
+<!-- shared SVG markers -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <marker id="ah" markerWidth="10" markerHeight="8" refX="8" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#475569"/>
+    </marker>
+    <marker id="ahr" markerWidth="10" markerHeight="8" refX="8" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+</svg>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>AI Study Coach — System Design</h1>
+    <p>Tài liệu thiết kế hệ thống: kiến trúc, workflow, use case, mô hình dữ liệu, triển khai.</p>
+    <p>Nền tảng học tập cá nhân hoá cho học sinh THPT — lộ trình, quiz, theo dõi tiến độ.</p>
+    <div>
+      <span class="pill">Go / Gin · DDD modular monolith</span>
+      <span class="pill">React (Admin) · React Native/Expo (Mobile)</span>
+      <span class="pill">Postgres · Redis · Kafka · S3</span>
+      <span class="pill">v1.0 · Phase 1</span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<nav class="toc">
+  <span class="grp">Tổng quan</span>
+  <a href="#overview">1. Giới thiệu &amp; mục tiêu</a>
+  <a href="#stack">2. Tech stack</a>
+  <a href="#usecase">3. Use Case Diagram</a>
+  <span class="grp">Kiến trúc</span>
+  <a href="#arch">4. Kiến trúc tổng thể</a>
+  <a href="#ddd">5. Phân tầng DDD</a>
+  <a href="#modules">6. Bản đồ 12 module</a>
+  <a href="#events">7. Event &amp; Kafka</a>
+  <span class="grp">Hành vi (Workflow)</span>
+  <a href="#seq-auth">8. Sequence: Auth</a>
+  <a href="#seq-quiz">9. Sequence: Quiz</a>
+  <a href="#seq-upload">10. Sequence: Upload→Parse</a>
+  <a href="#seq-notif">11. Sequence: Notification</a>
+  <span class="grp">Dữ liệu &amp; API</span>
+  <a href="#data">12. Mô hình dữ liệu (ER)</a>
+  <a href="#api">13. API surface</a>
+  <span class="grp">Vận hành</span>
+  <a href="#xcut">14. Cross-cutting concerns</a>
+  <a href="#deploy">15. Deployment</a>
+  <a href="#nfr">16. NFR &amp; scaling</a>
+  <a href="#limits">17. Giới hạn &amp; roadmap</a>
+</nav>
+
+<section id="overview">
+  <h2><span class="n">1.</span>Giới thiệu &amp; mục tiêu</h2>
+  <p><b>AI Study Coach</b> giúp học sinh THPT (15–18 tuổi) có lộ trình học rõ ràng: chẩn đoán đầu vào → sinh study plan → học theo chủ đề → làm quiz ngắn → theo dõi tiến độ, kèm nhắc học qua push notification. Admin upload tài liệu PDF, hệ thống tự parse thành câu hỏi nháp để review &amp; publish.</p>
+  <h3>Nguyên tắc thiết kế</h3>
+  <ul>
+    <li><b>Modular monolith theo DDD</b> — 12 domain module tách biệt, giao tiếp qua <i>ports &amp; adapters</i> và <i>domain events</i>; deploy 1 binary, dễ tách microservice sau.</li>
+    <li><b>Event-driven</b> cho việc phụ (progress, analytics, notification) — không chặn luồng chính của người dùng.</li>
+    <li><b>Stateless API</b> — scale ngang dễ; state nằm ở Postgres/Redis/Kafka/S3.</li>
+    <li><b>Security &amp; observability từ đầu</b> — JWT rotation+revocation, rate limit, audit admin, metrics, Sentry, structured log.</li>
+  </ul>
+</section>
+
+<section id="stack">
+  <h2><span class="n">2.</span>Tech stack</h2>
+  <table>
+    <tr><th>Lớp</th><th>Công nghệ</th><th>Vai trò</th></tr>
+    <tr><td>Backend API</td><td>Go 1.25, Gin, pgx/v5</td><td>Modular monolith, REST <code>/api/v1</code></td></tr>
+    <tr><td>Admin web</td><td>React 19, Vite, TanStack Query, Tailwind</td><td>Quản trị: upload, review draft, publish, curriculum</td></tr>
+    <tr><td>Mobile</td><td>React Native (Expo), React Navigation, Zustand</td><td>App học sinh (Android-first), 13 màn</td></tr>
+    <tr><td>Worker</td><td>Python, PyMuPDF, psycopg, boto3</td><td>Parse PDF → câu hỏi nháp</td></tr>
+    <tr><td>Database</td><td>PostgreSQL 16</td><td>Source of truth (16 migration)</td></tr>
+    <tr><td>Cache / KV</td><td>Redis 7</td><td>Refresh token, rate limit, token blocklist, idempotency, cache-aside</td></tr>
+    <tr><td>Messaging</td><td>Kafka (KRaft)</td><td>Notification pipeline (4 topic + DLQ)</td></tr>
+    <tr><td>Object storage</td><td>S3 / MinIO</td><td>File upload (presigned PUT)</td></tr>
+    <tr><td>Push</td><td>Firebase Cloud Messaging</td><td>Nhắc học; fallback log nếu chưa cấu hình</td></tr>
+    <tr><td>Infra</td><td>Docker Compose, Terraform (AWS), Nginx, GitHub Actions</td><td>Local/UAT &amp; production</td></tr>
+  </table>
+</section>
+
+<section id="usecase">
+  <h2><span class="n">3.</span>Use Case Diagram (UML)</h2>
+  <figure>
+    <div class="diagram">
+      <svg viewBox="0 0 880 460" role="img" aria-label="Use case diagram">
+        <!-- system boundary -->
+        <rect x="210" y="14" width="460" height="432" rx="14" fill="#fbfcff" stroke="#c7d2fe" stroke-width="1.4"/>
+        <text x="440" y="34" text-anchor="middle" class="s-t" font-weight="700">AI Study Coach System</text>
+
+        <!-- Student actor -->
+        <g transform="translate(40,150)">
+          <circle cx="20" cy="0" r="12" class="s-actor"/>
+          <line x1="20" y1="12" x2="20" y2="42" stroke="#3b5bff" stroke-width="2"/>
+          <line x1="2" y1="22" x2="38" y2="22" stroke="#3b5bff" stroke-width="2"/>
+          <line x1="20" y1="42" x2="6" y2="64" stroke="#3b5bff" stroke-width="2"/>
+          <line x1="20" y1="42" x2="34" y2="64" stroke="#3b5bff" stroke-width="2"/>
+          <text x="20" y="84" text-anchor="middle" class="s-t" font-weight="600">Học sinh</text>
+          <text x="20" y="98" text-anchor="middle" class="s-t-sm">(Mobile)</text>
+        </g>
+
+        <!-- Admin actor -->
+        <g transform="translate(40,330)">
+          <circle cx="20" cy="0" r="12" fill="#b5660f"/>
+          <line x1="20" y1="12" x2="20" y2="42" stroke="#b5660f" stroke-width="2"/>
+          <line x1="2" y1="22" x2="38" y2="22" stroke="#b5660f" stroke-width="2"/>
+          <line x1="20" y1="42" x2="6" y2="64" stroke="#b5660f" stroke-width="2"/>
+          <line x1="20" y1="42" x2="34" y2="64" stroke="#b5660f" stroke-width="2"/>
+          <text x="20" y="84" text-anchor="middle" class="s-t" font-weight="600">Admin</text>
+          <text x="20" y="98" text-anchor="middle" class="s-t-sm">(Web)</text>
+        </g>
+
+        <!-- Worker actor (system) -->
+        <g transform="translate(800,210)">
+          <circle cx="20" cy="0" r="12" fill="#15b981"/>
+          <line x1="20" y1="12" x2="20" y2="42" stroke="#15b981" stroke-width="2"/>
+          <line x1="2" y1="22" x2="38" y2="22" stroke="#15b981" stroke-width="2"/>
+          <line x1="20" y1="42" x2="6" y2="64" stroke="#15b981" stroke-width="2"/>
+          <line x1="20" y1="42" x2="34" y2="64" stroke="#15b981" stroke-width="2"/>
+          <text x="20" y="84" text-anchor="middle" class="s-t" font-weight="600">Parse</text>
+          <text x="20" y="98" text-anchor="middle" class="s-t-sm">Worker</text>
+        </g>
+
+        <!-- student use cases -->
+        <g class="uc">
+          <ellipse cx="320" cy="70" rx="78" ry="20" class="s-node-soft"/><text x="320" y="74" text-anchor="middle" class="s-t-sm">Đăng nhập / Onboarding</text>
+          <ellipse cx="320" cy="120" rx="78" ry="20" class="s-node-soft"/><text x="320" y="124" text-anchor="middle" class="s-t-sm">Chẩn đoán đầu vào</text>
+          <ellipse cx="320" cy="170" rx="78" ry="20" class="s-node-soft"/><text x="320" y="174" text-anchor="middle" class="s-t-sm">Sinh / xem lộ trình</text>
+          <ellipse cx="320" cy="220" rx="78" ry="20" class="s-node-soft"/><text x="320" y="224" text-anchor="middle" class="s-t-sm">Học bài (lesson)</text>
+          <ellipse cx="320" cy="270" rx="78" ry="20" class="s-node-soft"/><text x="320" y="274" text-anchor="middle" class="s-t-sm">Làm quiz &amp; xem kết quả</text>
+          <ellipse cx="320" cy="320" rx="78" ry="20" class="s-node-soft"/><text x="320" y="324" text-anchor="middle" class="s-t-sm">Xem tiến độ</text>
+          <ellipse cx="320" cy="370" rx="78" ry="20" class="s-node-soft"/><text x="320" y="374" text-anchor="middle" class="s-t-sm">Nhận thông báo</text>
+        </g>
+        <!-- admin use cases -->
+        <g class="uc">
+          <ellipse cx="560" cy="120" rx="86" ry="20" class="s-node-ext"/><text x="560" y="124" text-anchor="middle" class="s-t-sm">Upload PDF tài liệu</text>
+          <ellipse cx="560" cy="170" rx="86" ry="20" class="s-node-ext"/><text x="560" y="174" text-anchor="middle" class="s-t-sm">Review câu hỏi nháp</text>
+          <ellipse cx="560" cy="220" rx="86" ry="20" class="s-node-ext"/><text x="560" y="224" text-anchor="middle" class="s-t-sm">Publish câu hỏi</text>
+          <ellipse cx="560" cy="270" rx="86" ry="20" class="s-node-ext"/><text x="560" y="274" text-anchor="middle" class="s-t-sm">Quản lý curriculum</text>
+          <ellipse cx="560" cy="320" rx="86" ry="20" class="s-node-ext"/><text x="560" y="324" text-anchor="middle" class="s-t-sm">Gửi broadcast</text>
+        </g>
+        <ellipse cx="560" cy="380" rx="86" ry="20" class="s-node-data"/><text x="560" y="384" text-anchor="middle" class="s-t-sm">Parse PDF → drafts</text>
+
+        <!-- associations student -->
+        <g stroke="#94a3b8" stroke-width="1">
+          <line x1="80" y1="160" x2="244" y2="72"/>
+          <line x1="80" y1="165" x2="244" y2="120"/>
+          <line x1="80" y1="170" x2="244" y2="170"/>
+          <line x1="80" y1="178" x2="244" y2="220"/>
+          <line x1="80" y1="185" x2="244" y2="270"/>
+          <line x1="80" y1="192" x2="244" y2="320"/>
+          <line x1="80" y1="200" x2="244" y2="370"/>
+        </g>
+        <!-- associations admin -->
+        <g stroke="#d6a15f" stroke-width="1">
+          <line x1="80" y1="345" x2="476" y2="125"/>
+          <line x1="80" y1="350" x2="476" y2="172"/>
+          <line x1="80" y1="355" x2="476" y2="220"/>
+          <line x1="80" y1="360" x2="476" y2="270"/>
+          <line x1="80" y1="368" x2="476" y2="320"/>
+        </g>
+        <!-- worker -->
+        <line x1="800" y1="220" x2="646" y2="380" stroke="#86c7ae" stroke-width="1"/>
+      </svg>
+    </div>
+    <figcaption>Hình 1 — Use case: học sinh (mobile), admin (web) và parse worker (hệ thống).</figcaption>
+  </figure>
+</section>
+
+<section id="arch">
+  <h2><span class="n">4.</span>Kiến trúc tổng thể (Component Diagram)</h2>
+  <figure>
+    <div class="diagram">
+      <svg viewBox="0 0 880 520" role="img" aria-label="Architecture component diagram">
+        <!-- clients -->
+        <rect x="30" y="20" width="150" height="48" rx="8" class="s-node"/><text x="105" y="40" text-anchor="middle" class="s-t" font-weight="600">Mobile App</text><text x="105" y="56" text-anchor="middle" class="s-t-sm">RN/Expo</text>
+        <rect x="30" y="86" width="150" height="48" rx="8" class="s-node"/><text x="105" y="106" text-anchor="middle" class="s-t" font-weight="600">Admin Web</text><text x="105" y="122" text-anchor="middle" class="s-t-sm">React</text>
+
+        <!-- edge -->
+        <rect x="240" y="44" width="120" height="66" rx="8" class="s-node-ext"/><text x="300" y="72" text-anchor="middle" class="s-t" font-weight="600">Nginx / ALB</text><text x="300" y="90" text-anchor="middle" class="s-t-sm">TLS · rate edge</text>
+
+        <!-- API monolith -->
+        <rect x="410" y="14" width="270" height="240" rx="12" fill="#fbfcff" stroke="#3b5bff" stroke-width="1.6"/>
+        <text x="545" y="34" text-anchor="middle" class="s-t" font-weight="700">Go API (modular monolith)</text>
+        <rect x="424" y="44" width="242" height="40" rx="6" class="s-node-soft"/><text x="545" y="60" text-anchor="middle" class="s-t-sm" font-weight="600">Middleware</text><text x="545" y="74" text-anchor="middle" class="s-t-sm">log · metrics · auth · rate-limit · audit</text>
+        <rect x="424" y="92" width="116" height="34" rx="6" class="s-node"/><text x="482" y="113" text-anchor="middle" class="s-t-sm">auth · user</text>
+        <rect x="548" y="92" width="118" height="34" rx="6" class="s-node"/><text x="607" y="113" text-anchor="middle" class="s-t-sm">curriculum · content</text>
+        <rect x="424" y="132" width="116" height="34" rx="6" class="s-node"/><text x="482" y="153" text-anchor="middle" class="s-t-sm">question · goal</text>
+        <rect x="548" y="132" width="118" height="34" rx="6" class="s-node"/><text x="607" y="153" text-anchor="middle" class="s-t-sm">placement · studyplan</text>
+        <rect x="424" y="172" width="116" height="34" rx="6" class="s-node"/><text x="482" y="193" text-anchor="middle" class="s-t-sm">quiz · progress</text>
+        <rect x="548" y="172" width="118" height="34" rx="6" class="s-node"/><text x="607" y="193" text-anchor="middle" class="s-t-sm">analytics · notification</text>
+        <rect x="424" y="212" width="242" height="32" rx="6" class="s-node-soft"/><text x="545" y="232" text-anchor="middle" class="s-t-sm">in-process EventBus → Kafka publisher</text>
+
+        <!-- infra row -->
+        <rect x="120" y="320" width="120" height="50" rx="8" class="s-node-data"/><text x="180" y="345" text-anchor="middle" class="s-t" font-weight="600">PostgreSQL</text><text x="180" y="361" text-anchor="middle" class="s-t-sm">source of truth</text>
+        <rect x="260" y="320" width="120" height="50" rx="8" class="s-node-data"/><text x="320" y="345" text-anchor="middle" class="s-t" font-weight="600">Redis</text><text x="320" y="361" text-anchor="middle" class="s-t-sm">cache · token · limit</text>
+        <rect x="400" y="320" width="120" height="50" rx="8" class="s-node-data"/><text x="460" y="345" text-anchor="middle" class="s-t" font-weight="600">Kafka</text><text x="460" y="361" text-anchor="middle" class="s-t-sm">4 topic + DLQ</text>
+        <rect x="540" y="320" width="120" height="50" rx="8" class="s-node-data"/><text x="600" y="345" text-anchor="middle" class="s-t" font-weight="600">S3 / MinIO</text><text x="600" y="361" text-anchor="middle" class="s-t-sm">uploads</text>
+
+        <!-- worker + fcm -->
+        <rect x="700" y="320" width="150" height="50" rx="8" class="s-node-ext"/><text x="775" y="345" text-anchor="middle" class="s-t" font-weight="600">Parse Worker</text><text x="775" y="361" text-anchor="middle" class="s-t-sm">Python</text>
+        <rect x="700" y="180" width="150" height="44" rx="8" class="s-node-ext"/><text x="775" y="200" text-anchor="middle" class="s-t" font-weight="600">FCM</text><text x="775" y="216" text-anchor="middle" class="s-t-sm">push</text>
+
+        <!-- arrows -->
+        <g class="s-flow">
+          <line x1="180" y1="44" x2="240" y2="70" marker-end="url(#ah)"/>
+          <line x1="180" y1="110" x2="240" y2="84" marker-end="url(#ah)"/>
+          <line x1="360" y1="77" x2="410" y2="120" marker-end="url(#ah)"/>
+          <line x1="500" y1="254" x2="200" y2="320" marker-end="url(#ah)"/>
+          <line x1="520" y1="254" x2="330" y2="320" marker-end="url(#ah)"/>
+          <line x1="560" y1="254" x2="460" y2="320" marker-end="url(#ah)"/>
+          <line x1="600" y1="254" x2="600" y2="320" marker-end="url(#ah)"/>
+          <line x1="680" y1="200" x2="700" y2="202" marker-end="url(#ah)"/>
+          <line x1="775" y1="320" x2="640" y2="356" marker-end="url(#ah)"/>
+          <line x1="775" y1="320" x2="240" y2="356" marker-end="url(#ah)"/>
+          <line x1="520" y1="345" x2="700" y2="345" marker-end="url(#ah)"/>
+        </g>
+      </svg>
+    </div>
+    <figcaption>Hình 2 — Clients → Edge → Go API (12 module + middleware + eventbus) → Postgres/Redis/Kafka/S3; Worker tiêu thụ job &amp; ghi DB; API đẩy push qua FCM.</figcaption>
+  </figure>
+</section>
+
+<section id="ddd">
+  <h2><span class="n">5.</span>Phân tầng DDD (mỗi module)</h2>
+  <figure>
+    <div class="diagram">
+      <svg viewBox="0 0 760 250" role="img" aria-label="DDD layering">
+        <rect x="40" y="20" width="680" height="44" rx="8" class="s-node"/><text x="380" y="40" text-anchor="middle" class="s-t" font-weight="600">interfaces/ — HTTP handlers (Gin), DTO, Kafka consumers</text><text x="380" y="56" text-anchor="middle" class="s-t-sm">vào: request · ra: envelope JSON</text>
+        <rect x="40" y="76" width="680" height="44" rx="8" class="s-node-soft"/><text x="380" y="96" text-anchor="middle" class="s-t" font-weight="600">application/ — use-case services, orchestration, transactions</text><text x="380" y="112" text-anchor="middle" class="s-t-sm">phụ thuộc port (interface), publish event</text>
+        <rect x="40" y="132" width="680" height="44" rx="8" class="s-node-data"/><text x="380" y="152" text-anchor="middle" class="s-t" font-weight="600">domain/ — entity, value object, rule, ports (interface)</text><text x="380" y="168" text-anchor="middle" class="s-t-sm">thuần, không phụ thuộc hạ tầng</text>
+        <rect x="40" y="188" width="680" height="44" rx="8" class="s-node-ext"/><text x="380" y="208" text-anchor="middle" class="s-t" font-weight="600">infrastructure/ — adapters: pgx repo, Redis, S3, FCM, JWT</text><text x="380" y="224" text-anchor="middle" class="s-t-sm">hiện thực các port của domain</text>
+        <text x="735" y="120" class="s-t-sm" transform="rotate(90 735 120)">phụ thuộc hướng vào trong ↓</text>
+      </svg>
+    </div>
+    <figcaption>Hình 3 — Dependency Rule: interfaces → application → domain ← infrastructure (adapters hiện thực port).</figcaption>
+  </figure>
+  <p>Giao tiếp giữa module dùng <b>ports &amp; adapters</b>: ví dụ <code>studyplan</code> đọc <code>curriculum/placement/goal</code> qua adapter; <code>analytics</code> phản ứng sự kiện <code>quiz.completed</code>. Container <code>app.Deps</code> chứa các handoff: <code>AuthValidate</code>, <code>Notifier</code>, <code>ReengagementSource</code>, <code>Metrics</code>.</p>
+</section>
+
+<section id="modules">
+  <h2><span class="n">6.</span>Bản đồ 12 domain module</h2>
+  <div class="grid">
+    <div class="card"><h4>auth</h4><p>Đăng ký/đăng nhập, JWT access+refresh (rotation, revocation), bcrypt.</p></div>
+    <div class="card"><h4>user</h4><p>Hồ sơ người dùng; tạo khi <code>user.registered</code>.</p></div>
+    <div class="card"><h4>curriculum</h4><p>Subject → Chapter → Topic (có cache).</p></div>
+    <div class="card"><h4>content</h4><p>Lesson theo topic; admin upload + parse (có cache).</p></div>
+    <div class="card"><h4>question</h4><p>Ngân hàng câu hỏi; draft từ parse → publish.</p></div>
+    <div class="card"><h4>goal</h4><p>Mục tiêu học &amp; thời lượng/ngày.</p></div>
+    <div class="card"><h4>placement</h4><p>Bài chẩn đoán đầu vào, kết quả theo môn.</p></div>
+    <div class="card"><h4>studyplan</h4><p>Sinh lộ trình + milestone từ goal/placement.</p></div>
+    <div class="card"><h4>quiz</h4><p>Bắt đầu/nộp/chấm quiz, ownership-scoped.</p></div>
+    <div class="card"><h4>progress</h4><p>Streak, % hoàn thành; cập nhật theo event.</p></div>
+    <div class="card"><h4>analytics</h4><p>Weak topics, activity, inactive users.</p></div>
+    <div class="card"><h4>notification</h4><p>FCM push, preference, broadcast, re-engagement.</p></div>
+  </div>
+</section>
+
+<section id="events">
+  <h2><span class="n">7.</span>Domain events &amp; Kafka</h2>
+  <p>Việc phụ chạy bất đồng bộ qua <b>in-process EventBus</b> (đồng bộ, best-effort, nuốt lỗi để không làm hỏng hành động người dùng) và <b>Kafka</b> cho notification pipeline.</p>
+  <table>
+    <tr><th>Topic</th><th>Ý nghĩa</th></tr>
+    <tr><td><code>notification.schedule</code></td><td>Lịch nhắc học / re-engagement được xếp hàng</td></tr>
+    <tr><td><code>notification.send</code></td><td>Yêu cầu gửi push tới FCM (qua preference gate + idempotency)</td></tr>
+    <tr><td><code>notification.result</code></td><td>Kết quả gửi (thành công/thất bại, token invalid)</td></tr>
+    <tr><td><code>notification.dlq</code></td><td>Dead-letter: message không decode/không xử lý được</td></tr>
+  </table>
+  <div class="callout">Ví dụ event nội bộ: <code>user.registered</code> → tạo profile; <code>quiz.completed</code> → cập nhật progress + analytics (activity ping). Idempotency dùng Redis SETNX; consumer dùng WaitGroup để shutdown sạch.</div>
+</section>
+
+<section id="seq-auth">
+  <h2><span class="n">8.</span>Sequence — Đăng nhập &amp; refresh (UML)</h2>
+  <figure>
+    <div class="diagram">
+      <svg viewBox="0 0 760 340" role="img" aria-label="Auth sequence">
+        <!-- participants -->
+        <g>
+          <rect x="20" y="14" width="120" height="34" rx="6" class="s-node"/><text x="80" y="35" text-anchor="middle" class="s-t-sm" font-weight="600">Mobile/Admin</text>
+          <rect x="200" y="14" width="120" height="34" rx="6" class="s-node"/><text x="260" y="35" text-anchor="middle" class="s-t-sm" font-weight="600">API · auth</text>
+          <rect x="400" y="14" width="120" height="34" rx="6" class="s-node-data"/><text x="460" y="35" text-anchor="middle" class="s-t-sm" font-weight="600">PostgreSQL</text>
+          <rect x="600" y="14" width="120" height="34" rx="6" class="s-node-data"/><text x="660" y="35" text-anchor="middle" class="s-t-sm" font-weight="600">Redis</text>
+        </g>
+        <line x1="80" y1="48" x2="80" y2="320" class="s-life"/>
+        <line x1="260" y1="48" x2="260" y2="320" class="s-life"/>
+        <line x1="460" y1="48" x2="460" y2="320" class="s-life"/>
+        <line x1="660" y1="48" x2="660" y2="320" class="s-life"/>
+        <!-- messages -->
+        <g>
+          <line x1="80" y1="80" x2="258" y2="80" class="s-flow" marker-end="url(#ah)"/><text x="84" y="74" class="s-msg">POST /auth/login {email,password}</text>
+          <line x1="260" y1="110" x2="458" y2="110" class="s-flow" marker-end="url(#ah)"/><text x="266" y="104" class="s-msg">SELECT credential by email</text>
+          <line x1="458" y1="134" x2="262" y2="134" class="s-flow-ret" marker-end="url(#ahr)"/><text x="300" y="128" class="s-msg">row (hash, role)</text>
+          <rect x="232" y="148" width="120" height="22" rx="4" class="s-node-soft"/><text x="292" y="163" text-anchor="middle" class="s-t-sm">bcrypt compare</text>
+          <rect x="220" y="176" width="150" height="22" rx="4" class="s-node-soft"/><text x="295" y="191" text-anchor="middle" class="s-t-sm">issue access+refresh (jti)</text>
+          <line x1="260" y1="218" x2="658" y2="218" class="s-flow" marker-end="url(#ah)"/><text x="300" y="212" class="s-msg">SETEX refresh jti (TTL)</text>
+          <line x1="658" y1="242" x2="262" y2="242" class="s-flow-ret" marker-end="url(#ahr)"/><text x="470" y="236" class="s-msg">ok</text>
+          <line x1="258" y1="272" x2="82" y2="272" class="s-flow-ret" marker-end="url(#ahr)"/><text x="86" y="266" class="s-msg">200 {access, refresh, expires_at}</text>
+          <text x="84" y="300" class="s-msg" fill="#7c8398">Sau đó: mỗi request gửi Bearer; logout → revoke refresh + blocklist access jti (Redis).</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption>Hình 4 — Login: xác thực → cấp token → lưu refresh jti vào Redis. Access token có jti để revoke tức thì khi logout.</figcaption>
+  </figure>
+</section>
+
+<section id="seq-quiz">
+  <h2><span class="n">9.</span>Sequence — Làm quiz &amp; cập nhật tiến độ (UML)</h2>
+  <figure>
+    <div class="diagram">
+      <svg viewBox="0 0 760 360" role="img" aria-label="Quiz sequence">
+        <g>
+          <rect x="20" y="14" width="110" height="34" rx="6" class="s-node"/><text x="75" y="35" text-anchor="middle" class="s-t-sm" font-weight="600">Mobile</text>
+          <rect x="170" y="14" width="110" height="34" rx="6" class="s-node"/><text x="225" y="35" text-anchor="middle" class="s-t-sm" font-weight="600">quiz svc</text>
+          <rect x="320" y="14" width="110" height="34" rx="6" class="s-node-data"/><text x="375" y="35" text-anchor="middle" class="s-t-sm" font-weight="600">Postgres</text>
+          <rect x="470" y="14" width="110" height="34" rx="6" class="s-node-soft"/><text x="525" y="35" text-anchor="middle" class="s-t-sm" font-weight="600">EventBus</text>
+          <rect x="620" y="14" width="120" height="34" rx="6" class="s-node"/><text x="680" y="29" text-anchor="middle" class="s-t-sm" font-weight="600">progress +</text><text x="680" y="42" text-anchor="middle" class="s-t-sm" font-weight="600">analytics</text>
+        </g>
+        <line x1="75" y1="48" x2="75" y2="345" class="s-life"/>
+        <line x1="225" y1="48" x2="225" y2="345" class="s-life"/>
+        <line x1="375" y1="48" x2="375" y2="345" class="s-life"/>
+        <line x1="525" y1="48" x2="525" y2="345" class="s-life"/>
+        <line x1="680" y1="48" x2="680" y2="345" class="s-life"/>
+        <g>
+          <line x1="75" y1="78" x2="223" y2="78" class="s-flow" marker-end="url(#ah)"/><text x="79" y="72" class="s-msg">POST /quizzes {topicId}</text>
+          <line x1="225" y1="100" x2="373" y2="100" class="s-flow" marker-end="url(#ah)"/><text x="231" y="94" class="s-msg">tạo quiz + lấy câu hỏi</text>
+          <line x1="223" y1="124" x2="77" y2="124" class="s-flow-ret" marker-end="url(#ahr)"/><text x="81" y="118" class="s-msg">quiz {id, questions[]}</text>
+          <line x1="75" y1="158" x2="223" y2="158" class="s-flow" marker-end="url(#ah)"/><text x="79" y="152" class="s-msg">POST /quizzes/:id/submit {answers}</text>
+          <rect x="150" y="170" width="170" height="22" rx="4" class="s-node-soft"/><text x="235" y="185" text-anchor="middle" class="s-t-sm">chấm điểm + lưu kết quả (tx)</text>
+          <line x1="225" y1="206" x2="373" y2="206" class="s-flow" marker-end="url(#ah)"/><text x="231" y="200" class="s-msg">SaveResultAndComplete (1 transaction)</text>
+          <line x1="225" y1="234" x2="523" y2="234" class="s-flow" marker-end="url(#ah)"/><text x="231" y="228" class="s-msg">publish quiz.completed</text>
+          <line x1="525" y1="258" x2="678" y2="258" class="s-flow" marker-end="url(#ah)"/><text x="531" y="252" class="s-msg">handle (best-effort, async)</text>
+          <line x1="223" y1="288" x2="77" y2="288" class="s-flow-ret" marker-end="url(#ahr)"/><text x="81" y="282" class="s-msg">200 {score, total, answers+explanation}</text>
+          <text x="79" y="320" class="s-msg" fill="#7c8398">Lỗi ở progress/analytics được log &amp; nuốt — không làm fail submit của học sinh.</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption>Hình 5 — Quiz submit ghi kết quả &amp; đóng session trong 1 transaction; progress/analytics cập nhật qua event (eventual consistency).</figcaption>
+  </figure>
+</section>
+
+<section id="seq-upload">
+  <h2><span class="n">10.</span>Sequence — Upload PDF → Parse → Publish (UML)</h2>
+  <figure>
+    <div class="diagram">
+      <svg viewBox="0 0 760 380" role="img" aria-label="Upload parse sequence">
+        <g>
+          <rect x="20" y="14" width="100" height="34" rx="6" class="s-node-ext"/><text x="70" y="35" text-anchor="middle" class="s-t-sm" font-weight="600">Admin</text>
+          <rect x="150" y="14" width="100" height="34" rx="6" class="s-node"/><text x="200" y="35" text-anchor="middle" class="s-t-sm" font-weight="600">content svc</text>
+          <rect x="280" y="14" width="100" height="34" rx="6" class="s-node-data"/><text x="330" y="35" text-anchor="middle" class="s-t-sm" font-weight="600">S3/MinIO</text>
+          <rect x="410" y="14" width="100" height="34" rx="6" class="s-node-data"/><text x="460" y="35" text-anchor="middle" class="s-t-sm" font-weight="600">Postgres</text>
+          <rect x="560" y="14" width="100" height="34" rx="6" class="s-node-ext"/><text x="610" y="35" text-anchor="middle" class="s-t-sm" font-weight="600">Worker</text>
+        </g>
+        <line x1="70" y1="48" x2="70" y2="368" class="s-life"/>
+        <line x1="200" y1="48" x2="200" y2="368" class="s-life"/>
+        <line x1="330" y1="48" x2="330" y2="368" class="s-life"/>
+        <line x1="460" y1="48" x2="460" y2="368" class="s-life"/>
+        <line x1="610" y1="48" x2="610" y2="368" class="s-life"/>
+        <g>
+          <line x1="70" y1="76" x2="198" y2="76" class="s-flow" marker-end="url(#ah)"/><text x="74" y="70" class="s-msg">POST /admin/uploads/init</text>
+          <line x1="198" y1="100" x2="74" y2="100" class="s-flow-ret" marker-end="url(#ahr)"/><text x="78" y="94" class="s-msg">presigned PUT URL + asset</text>
+          <line x1="70" y1="128" x2="328" y2="128" class="s-flow" marker-end="url(#ah)"/><text x="74" y="122" class="s-msg">PUT file (≤20MB) trực tiếp lên S3</text>
+          <line x1="70" y1="156" x2="198" y2="156" class="s-flow" marker-end="url(#ah)"/><text x="74" y="150" class="s-msg">POST /admin/uploads/:id/complete</text>
+          <line x1="200" y1="180" x2="458" y2="180" class="s-flow" marker-end="url(#ah)"/><text x="206" y="174" class="s-msg">tạo parse_job (QUEUED)</text>
+          <line x1="610" y1="210" x2="462" y2="210" class="s-flow" marker-end="url(#ah)"/><text x="360" y="204" class="s-msg">poll FOR UPDATE SKIP LOCKED</text>
+          <line x1="610" y1="236" x2="332" y2="236" class="s-flow" marker-end="url(#ah)"/><text x="338" y="230" class="s-msg">tải PDF</text>
+          <rect x="540" y="248" width="150" height="22" rx="4" class="s-node-soft"/><text x="615" y="263" text-anchor="middle" class="s-t-sm">extract text → drafts</text>
+          <line x1="610" y1="288" x2="462" y2="288" class="s-flow" marker-end="url(#ah)"/><text x="360" y="282" class="s-msg">ghi question_draft + status</text>
+          <line x1="70" y1="316" x2="198" y2="316" class="s-flow" marker-end="url(#ah)"/><text x="74" y="310" class="s-msg">GET drafts → review → POST publish</text>
+          <line x1="200" y1="340" x2="458" y2="340" class="s-flow" marker-end="url(#ah)"/><text x="206" y="334" class="s-msg">draft → question (chính thức)</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption>Hình 6 — Upload presigned (không qua API), worker poll job độc lập (retry/stuck-detection), admin review &amp; publish.</figcaption>
+  </figure>
+</section>
+
+<section id="seq-notif">
+  <h2><span class="n">11.</span>Sequence — Notification / Re-engagement (UML)</h2>
+  <figure>
+    <div class="diagram">
+      <svg viewBox="0 0 760 300" role="img" aria-label="Notification sequence">
+        <g>
+          <rect x="20" y="14" width="110" height="34" rx="6" class="s-node-soft"/><text x="75" y="29" text-anchor="middle" class="s-t-sm" font-weight="600">Scheduler /</text><text x="75" y="42" text-anchor="middle" class="s-t-sm" font-weight="600">event</text>
+          <rect x="170" y="14" width="110" height="34" rx="6" class="s-node-data"/><text x="225" y="35" text-anchor="middle" class="s-t-sm" font-weight="600">Kafka</text>
+          <rect x="320" y="14" width="120" height="34" rx="6" class="s-node"/><text x="380" y="35" text-anchor="middle" class="s-t-sm" font-weight="600">notif consumer</text>
+          <rect x="480" y="14" width="110" height="34" rx="6" class="s-node-data"/><text x="535" y="35" text-anchor="middle" class="s-t-sm" font-weight="600">Redis</text>
+          <rect x="630" y="14" width="110" height="34" rx="6" class="s-node-ext"/><text x="685" y="35" text-anchor="middle" class="s-t-sm" font-weight="600">FCM</text>
+        </g>
+        <line x1="75" y1="48" x2="75" y2="288" class="s-life"/>
+        <line x1="225" y1="48" x2="225" y2="288" class="s-life"/>
+        <line x1="380" y1="48" x2="380" y2="288" class="s-life"/>
+        <line x1="535" y1="48" x2="535" y2="288" class="s-life"/>
+        <line x1="685" y1="48" x2="685" y2="288" class="s-life"/>
+        <g>
+          <line x1="75" y1="78" x2="223" y2="78" class="s-flow" marker-end="url(#ah)"/><text x="79" y="72" class="s-msg">notification.schedule / send</text>
+          <line x1="225" y1="104" x2="378" y2="104" class="s-flow" marker-end="url(#ah)"/><text x="231" y="98" class="s-msg">consume</text>
+          <line x1="380" y1="130" x2="533" y2="130" class="s-flow" marker-end="url(#ah)"/><text x="386" y="124" class="s-msg">SETNX idempotency + preference gate</text>
+          <line x1="533" y1="154" x2="382" y2="154" class="s-flow-ret" marker-end="url(#ahr)"/><text x="400" y="148" class="s-msg">cho phép gửi?</text>
+          <line x1="380" y1="184" x2="683" y2="184" class="s-flow" marker-end="url(#ah)"/><text x="386" y="178" class="s-msg">send(token, title, body) — backoff retry</text>
+          <line x1="683" y1="208" x2="382" y2="208" class="s-flow-ret" marker-end="url(#ahr)"/><text x="430" y="202" class="s-msg">result / token invalid</text>
+          <line x1="380" y1="238" x2="226" y2="238" class="s-flow" marker-end="url(#ah)"/><text x="232" y="232" class="s-msg">notification.result · lỗi decode → DLQ</text>
+          <text x="79" y="270" class="s-msg" fill="#7c8398">Token invalid → deactivate device. Re-engagement: analytics.InactiveUserIDs → schedule.</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption>Hình 7 — Notification pipeline qua Kafka: idempotency + preference gate + retry backoff + DLQ; token hỏng thì vô hiệu hoá device.</figcaption>
+  </figure>
+</section>
+
+<section id="data">
+  <h2><span class="n">12.</span>Mô hình dữ liệu (ER) — bảng chính</h2>
+  <figure>
+    <div class="diagram">
+      <svg viewBox="0 0 820 300" role="img" aria-label="ER diagram">
+        <rect x="20" y="30" width="130" height="58" rx="8" class="s-node"/><text x="85" y="50" text-anchor="middle" class="s-t" font-weight="700">users</text><text x="85" y="68" text-anchor="middle" class="s-t-sm">id, email, role</text>
+        <rect x="20" y="150" width="130" height="58" rx="8" class="s-node"/><text x="85" y="170" text-anchor="middle" class="s-t" font-weight="700">credentials</text><text x="85" y="188" text-anchor="middle" class="s-t-sm">user_id, hash</text>
+        <rect x="200" y="20" width="130" height="58" rx="8" class="s-node-data"/><text x="265" y="40" text-anchor="middle" class="s-t" font-weight="700">subjects</text><text x="265" y="58" text-anchor="middle" class="s-t-sm">→ chapters → topics</text>
+        <rect x="200" y="110" width="130" height="58" rx="8" class="s-node-data"/><text x="265" y="130" text-anchor="middle" class="s-t" font-weight="700">topics</text><text x="265" y="148" text-anchor="middle" class="s-t-sm">id, chapter_id</text>
+        <rect x="380" y="20" width="130" height="58" rx="8" class="s-node-data"/><text x="445" y="40" text-anchor="middle" class="s-t" font-weight="700">lessons</text><text x="445" y="58" text-anchor="middle" class="s-t-sm">topic_id, items</text>
+        <rect x="380" y="110" width="130" height="58" rx="8" class="s-node-data"/><text x="445" y="130" text-anchor="middle" class="s-t" font-weight="700">questions</text><text x="445" y="148" text-anchor="middle" class="s-t-sm">topic_id, options</text>
+        <rect x="560" y="20" width="130" height="58" rx="8" class="s-node"/><text x="625" y="40" text-anchor="middle" class="s-t" font-weight="700">study_plans</text><text x="625" y="58" text-anchor="middle" class="s-t-sm">user_id, milestones</text>
+        <rect x="560" y="110" width="130" height="58" rx="8" class="s-node"/><text x="625" y="130" text-anchor="middle" class="s-t" font-weight="700">quizzes</text><text x="625" y="148" text-anchor="middle" class="s-t-sm">user_id, results</text>
+        <rect x="200" y="220" width="130" height="58" rx="8" class="s-node-ext"/><text x="265" y="240" text-anchor="middle" class="s-t" font-weight="700">uploaded_asset</text><text x="265" y="258" text-anchor="middle" class="s-t-sm">→ parse_job</text>
+        <rect x="380" y="220" width="130" height="58" rx="8" class="s-node-ext"/><text x="445" y="240" text-anchor="middle" class="s-t" font-weight="700">question_draft</text><text x="445" y="258" text-anchor="middle" class="s-t-sm">→ publish</text>
+        <rect x="560" y="220" width="130" height="58" rx="8" class="s-node-soft"/><text x="625" y="240" text-anchor="middle" class="s-t" font-weight="700">progress / analytics</text><text x="625" y="258" text-anchor="middle" class="s-t-sm">activity_event</text>
+        <rect x="710" y="150" width="100" height="48" rx="8" class="s-node-soft"/><text x="760" y="170" text-anchor="middle" class="s-t" font-weight="700">admin_audit</text><text x="760" y="186" text-anchor="middle" class="s-t-sm">_log</text>
+        <g stroke="#94a3b8" stroke-width="1.2">
+          <line x1="85" y1="88" x2="85" y2="150" marker-end="url(#ah)"/>
+          <line x1="265" y1="78" x2="265" y2="110" marker-end="url(#ah)"/>
+          <line x1="330" y1="139" x2="380" y2="139" marker-end="url(#ah)"/>
+          <line x1="330" y1="130" x2="380" y2="49" marker-end="url(#ah)"/>
+          <line x1="150" y1="59" x2="200" y2="130" marker-end="url(#ah)"/>
+          <line x1="330" y1="249" x2="380" y2="249" marker-end="url(#ah)"/>
+          <line x1="510" y1="240" x2="510" y2="160" marker-end="url(#ah)"/>
+        </g>
+      </svg>
+    </div>
+    <figcaption>Hình 8 — 16 bảng (migration 001–016). Khoá ngoại chính: users↔credentials, curriculum phân cấp, plan/quiz theo user, upload→parse→draft→question.</figcaption>
+  </figure>
+  <p class="legend">Bảng đầy đủ: auth_credentials, users, devices &amp; notification_*, subjects/chapters/topics, questions, lessons/content_items, goals, placement_*, study_plans/milestones, quizzes/quiz_results, progress, activity_event, uploaded_asset, parse_job, question_draft(+options), admin_audit_log.</p>
+</section>
+
+<section id="api">
+  <h2><span class="n">13.</span>API surface</h2>
+  <p>REST dưới <code>/api/v1</code>; envelope thống nhất <code>{success, data, error, meta}</code>; Bearer JWT; lỗi map sang HTTP status. Endpoint vận hành ngoài group: <code>/health</code>, <code>/health/ready</code>, <code>/metrics</code>.</p>
+  <table>
+    <tr><th>Nhóm</th><th>Endpoint tiêu biểu</th><th>Quyền</th></tr>
+    <tr><td>Auth</td><td>POST /auth/login · register · refresh · logout</td><td><span class="tag pub">public</span> <span class="tag auth">auth</span></td></tr>
+    <tr><td>User</td><td>GET/PUT /users/me</td><td><span class="tag auth">auth</span></td></tr>
+    <tr><td>Curriculum</td><td>GET subjects/chapters/topics · POST (admin)</td><td><span class="tag auth">auth</span> <span class="tag admin">admin</span></td></tr>
+    <tr><td>Content</td><td>GET /topics/:id/lessons · /lessons/:id</td><td><span class="tag auth">auth</span></td></tr>
+    <tr><td>Placement</td><td>POST /placement/tests · /:id/submit · GET results</td><td><span class="tag auth">auth</span></td></tr>
+    <tr><td>Study plan</td><td>POST /studyplans/generate · GET list/:id</td><td><span class="tag auth">auth</span></td></tr>
+    <tr><td>Quiz</td><td>POST /quizzes · /:id/submit · GET /:id</td><td><span class="tag auth">auth</span></td></tr>
+    <tr><td>Progress/Analytics</td><td>GET /progress · /analytics/me/weak-topics</td><td><span class="tag auth">auth</span></td></tr>
+    <tr><td>Notification</td><td>devices/token · preferences · /admin/notifications/broadcast</td><td><span class="tag auth">auth</span> <span class="tag admin">admin</span></td></tr>
+    <tr><td>Admin upload</td><td>/admin/uploads/* · /admin/question-drafts/*</td><td><span class="tag admin">admin</span></td></tr>
+  </table>
+  <div class="callout">Bảng error-code → HTTP: VALIDATION_ERROR 422 · UNAUTHORIZED 401 · FORBIDDEN 403 · NOT_FOUND 404 · CONFLICT 409 · TOO_MANY_REQUESTS 429 · INTERNAL 500. Chi tiết đầy đủ: <code>server/docs/API.md</code>.</div>
+</section>
+
+<section id="xcut">
+  <h2><span class="n">14.</span>Cross-cutting concerns</h2>
+  <div class="grid">
+    <div class="card"><h4>Bảo mật</h4><p>bcrypt; JWT HS256 pinned; refresh rotation+revocation; access-token blocklist (jti); password policy 10–72; prod config validation (sslmode/secret).</p></div>
+    <div class="card"><h4>Rate limiting</h4><p>Redis fixed-window (Lua atomic): auth 10/phút, toàn <code>/api/v1</code> 120/phút per-IP; trusted-proxy cho X-Forwarded-For; 429.</p></div>
+    <div class="card"><h4>Cache</h4><p>Cache-aside (Redis) cho curriculum + lessons; invalidate khi admin ghi; TTL 10 phút.</p></div>
+    <div class="card"><h4>Observability</h4><p>Prometheus <code>/metrics</code> (latency, 4xx/5xx, failures); Sentry (gated DSN); structured log + correlation-id.</p></div>
+    <div class="card"><h4>Audit</h4><p><code>admin_audit_log</code> ghi mọi mutation của ADMIN (actor/method/path/status).</p></div>
+    <div class="card"><h4>Reliability</h4><p>Graceful shutdown; readiness probe (DB+Redis); transaction cho quiz/placement submit; Kafka DLQ.</p></div>
+  </div>
+</section>
+
+<section id="deploy">
+  <h2><span class="n">15.</span>Deployment</h2>
+  <figure>
+    <div class="diagram">
+      <svg viewBox="0 0 820 320" role="img" aria-label="Deployment diagram">
+        <text x="20" y="20" class="s-t" font-weight="700">Production (AWS — Terraform)</text>
+        <rect x="20" y="30" width="500" height="180" rx="12" fill="#fbfcff" stroke="#c7d2fe" stroke-width="1.4"/>
+        <text x="40" y="50" class="s-t-sm">VPC · 2 AZ · public/private subnet</text>
+        <rect x="40" y="60" width="110" height="44" rx="8" class="s-node-ext"/><text x="95" y="86" text-anchor="middle" class="s-t-sm" font-weight="600">ALB + ACM</text>
+        <rect x="170" y="60" width="120" height="44" rx="8" class="s-node"/><text x="230" y="80" text-anchor="middle" class="s-t-sm" font-weight="600">EC2 (Docker)</text><text x="230" y="96" text-anchor="middle" class="s-t-sm">api+worker+nginx</text>
+        <rect x="40" y="130" width="100" height="40" rx="8" class="s-node-data"/><text x="90" y="155" text-anchor="middle" class="s-t-sm" font-weight="600">RDS PG</text>
+        <rect x="150" y="130" width="110" height="40" rx="8" class="s-node-data"/><text x="205" y="155" text-anchor="middle" class="s-t-sm" font-weight="600">ElastiCache</text>
+        <rect x="270" y="130" width="100" height="40" rx="8" class="s-node-data"/><text x="320" y="155" text-anchor="middle" class="s-t-sm" font-weight="600">MSK*</text>
+        <rect x="380" y="130" width="100" height="40" rx="8" class="s-node-data"/><text x="430" y="155" text-anchor="middle" class="s-t-sm" font-weight="600">S3</text>
+        <rect x="310" y="60" width="120" height="44" rx="8" class="s-node-soft"/><text x="370" y="80" text-anchor="middle" class="s-t-sm" font-weight="600">SSM / Secrets</text><text x="370" y="96" text-anchor="middle" class="s-t-sm">JWT/DB/keys</text>
+        <text x="40" y="200" class="s-t-sm" fill="#7c8398">*MSK tuỳ chọn (enable_msk); có thể self-host KRaft. CloudWatch + Sentry monitoring.</text>
+
+        <text x="560" y="20" class="s-t" font-weight="700">Local / UAT</text>
+        <rect x="560" y="30" width="240" height="180" rx="12" fill="#fbfcff" stroke="#c7d2fe" stroke-width="1.4"/>
+        <text x="580" y="50" class="s-t-sm">docker-compose (1 lệnh)</text>
+        <rect x="580" y="60" width="90" height="36" rx="6" class="s-node"/><text x="625" y="82" text-anchor="middle" class="s-t-sm">app</text>
+        <rect x="690" y="60" width="90" height="36" rx="6" class="s-node-ext"/><text x="735" y="82" text-anchor="middle" class="s-t-sm">worker</text>
+        <rect x="580" y="106" width="64" height="34" rx="6" class="s-node-data"/><text x="612" y="127" text-anchor="middle" class="s-t-sm">PG</text>
+        <rect x="652" y="106" width="64" height="34" rx="6" class="s-node-data"/><text x="684" y="127" text-anchor="middle" class="s-t-sm">Redis</text>
+        <rect x="724" y="106" width="56" height="34" rx="6" class="s-node-data"/><text x="752" y="127" text-anchor="middle" class="s-t-sm">Kafka</text>
+        <rect x="580" y="150" width="90" height="34" rx="6" class="s-node-data"/><text x="625" y="171" text-anchor="middle" class="s-t-sm">MinIO</text>
+        <text x="580" y="200" class="s-t-sm" fill="#7c8398">EDU_ENV=development · make deploy</text>
+      </svg>
+    </div>
+    <figcaption>Hình 9 — Production trên AWS (Terraform) vs local/UAT bằng docker-compose. CI: GitHub Actions (build/test/govulncheck/audit) cho 4 component.</figcaption>
+  </figure>
+</section>
+
+<section id="nfr">
+  <h2><span class="n">16.</span>Non-functional &amp; scaling</h2>
+  <ul>
+    <li><b>Scale ngang:</b> API stateless → tăng instance sau ALB; Redis/Kafka/RDS managed.</li>
+    <li><b>Hiệu năng:</b> cache-aside giảm tải DB cho dữ liệu tham chiếu; index theo truy vấn nóng; pgxpool.</li>
+    <li><b>Tính sẵn sàng:</b> readiness/liveness, graceful shutdown, restart policy, RDS Multi-AZ (toggle).</li>
+    <li><b>Bảo mật:</b> TLS, secret qua SSM, S3 private, rate limit, audit; 0 vuln (govulncheck/npm/pip-audit).</li>
+    <li><b>Khả năng quan sát:</b> metrics + Sentry + correlation-id xuyên suốt.</li>
+  </ul>
+</section>
+
+<section id="limits">
+  <h2><span class="n">17.</span>Giới hạn hiện tại &amp; roadmap</h2>
+  <ul>
+    <li>Push thật cần cấu hình Firebase (hiện fallback log nếu thiếu).</li>
+    <li>Audit chi tiết cho hành động <b>mobile/student</b> chưa có (chỉ activity ping khi quiz xong) — Phase sau.</li>
+    <li>Diagnostic flow mobile: start test → đọc kết quả (submit câu hỏi là mở rộng).</li>
+    <li>Kafka TLS/SASL, OCR cho PDF scan, iOS release, advanced analytics — ngoài scope Phase 1.</li>
+    <li>Đi public cần: apply Terraform thật, closed beta (crash-free ≥ 99.5%), đóng các mục infra trong <code>docs/SECURITY_CLOSURE.md</code>.</li>
+  </ul>
+  <div class="callout">Tài liệu liên quan: <code>plan/PHASE1_GOLIVE_PLAN.md</code> · <code>docs/PHASE1_SCOPE_FREEZE.md</code> · <code>docs/SECURITY_CLOSURE.md</code> · <code>docs/QA_REPORT.md</code> · <code>docs/RELEASE_RUNBOOK.md</code> · <code>server/docs/API.md</code>.</div>
+</section>
+
+</main>
+
+<footer>
+  AI Study Coach — System Design · Phase 1 · sinh từ codebase thực tế (12 module, 16 migration, 4 Kafka topic).
+</footer>
+
+</body>
+</html>
