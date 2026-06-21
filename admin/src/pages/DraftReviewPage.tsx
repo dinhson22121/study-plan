@@ -9,6 +9,7 @@ import { Input, Textarea } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import { TopicSelector } from "@/components/TopicSelector";
 import * as drafts from "@/api/drafts";
@@ -20,9 +21,10 @@ export function DraftReviewPage() {
   const { assetId } = useParams<{ assetId: string }>();
   const qc = useQueryClient();
   const { toast } = useToast();
-  const { data, isLoading } = useDrafts(assetId);
+  const { data, isLoading, isError } = useDrafts(assetId);
   const [topicId, setTopicId] = useState("");
   const [difficulty, setDifficulty] = useState<Difficulty>("MEDIUM");
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const publishAll = useMutation({
     mutationFn: () => drafts.publishByAsset(assetId as string, topicId, difficulty),
@@ -58,12 +60,13 @@ export function DraftReviewPage() {
               </Select>
             </div>
             <Button
+              data-testid="publish-all"
               onClick={() => {
                 if (!topicId) {
                   toast("Hãy chọn chủ đề trước", "error");
                   return;
                 }
-                if (confirm(`Publish ${pending} draft chưa publish?`)) publishAll.mutate();
+                setConfirmOpen(true);
               }}
               disabled={pending === 0 || publishAll.isPending}
             >
@@ -75,6 +78,8 @@ export function DraftReviewPage() {
 
       {isLoading ? (
         <Spinner label="Đang tải draft..." />
+      ) : isError ? (
+        <p className="text-sm text-red-600">Không tải được danh sách draft.</p>
       ) : items.length === 0 ? (
         <p className="text-sm text-slate-500">Chưa có draft. Hãy chờ worker parse xong.</p>
       ) : (
@@ -90,6 +95,19 @@ export function DraftReviewPage() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Publish toàn bộ draft"
+        description={`Publish ${pending} draft chưa publish vào chủ đề đã chọn?`}
+        confirmLabel="Publish"
+        busy={publishAll.isPending}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          publishAll.mutate();
+        }}
+      />
     </div>
   );
 }
@@ -212,6 +230,7 @@ function DraftCard({
               Lưu
             </Button>
             <Button
+              data-testid="publish-draft"
               onClick={() => {
                 if (!topicId) {
                   toast("Hãy chọn chủ đề trước", "error");

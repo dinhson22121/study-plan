@@ -7,12 +7,17 @@ import (
 	"github.com/son-ngo/edu-app/internal/auth/application"
 	"github.com/son-ngo/edu-app/internal/auth/infrastructure"
 	authhttp "github.com/son-ngo/edu-app/internal/auth/interfaces/http"
+	"github.com/son-ngo/edu-app/internal/shared/ratelimit"
 )
 
 func Register(rg *gin.RouterGroup, deps *app.Deps) {
 	svc := NewService(deps)
 	deps.AuthValidate = svc.ValidateAccessToken
-	authhttp.NewHandler(svc, svc.ValidateAccessToken).Routes(rg)
+	if deps.AuthRateLimiter == nil {
+		deps.AuthRateLimiter = ratelimit.NewRedisLimiter(
+			deps.Redis, deps.Cfg.RateLimit.AuthRequests, deps.Cfg.RateLimit.AuthWindow)
+	}
+	authhttp.NewHandler(svc, svc.ValidateAccessToken, deps.AuthRateLimiter).Routes(rg)
 }
 
 func NewService(deps *app.Deps) *application.Service {
@@ -25,5 +30,7 @@ func NewService(deps *app.Deps) *application.Service {
 		Issuer:     deps.Cfg.JWT.Issuer,
 	})
 	refreshStore := infrastructure.NewRedisRefreshStore(deps.Redis, deps.Cfg.JWT.RefreshTTL)
-	return application.NewService(repo, hasher, tokens, refreshStore, deps.Bus)
+	blocklist := infrastructure.NewRedisBlocklist(deps.Redis)
+	return application.NewService(repo, hasher, tokens, refreshStore, deps.Bus,
+		application.WithBlocklist(blocklist))
 }

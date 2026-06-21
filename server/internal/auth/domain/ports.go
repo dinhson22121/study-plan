@@ -1,6 +1,9 @@
 package domain
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 type CredentialRepository interface {
 	Create(ctx context.Context, c *UserCredential) error
@@ -24,4 +27,9 @@ type RefreshStore interface {
 	Save(ctx context.Context, userID, jti string) error
 	Exists(ctx context.Context, userID, jti string) (bool, error)
 	Delete(ctx context.Context, userID, jti string) error
+}
+
+type TokenBlocklist interface {
+	Revoke(ctx context.Context, jti string, ttl time.Duration) error
+	IsRevoked(ctx context.Context, jti string) (bool, error)
 }

@@ -1,0 +1,76 @@
+###############################################################################
+# Example variable values for the Edu App Phase 1 production stack.
+#
+# Copy to terraform.tfvars (gitignored) and fill in. SECRETS (db_password,
+# jwt_secret, sentry_dsn) are better supplied via environment variables so they
+# never touch disk:
+#
+#   export TF_VAR_db_password='...'
+#   export TF_VAR_jwt_secret="$(openssl rand -base64 48)"
+#   export TF_VAR_sentry_dsn='https://...@oXXXX.ingest.sentry.io/XXXX'
+#
+# Anything left unset falls back to the defaults in variables.tf.
+###############################################################################
+
+# ---- Core / tagging ----
+project     = "edu-app"
+environment = "prod"
+aws_region  = "ap-southeast-1"
+extra_tags = {
+  Owner   = "platform"
+  Service = "edu-app"
+}
+
+# ---- Networking ----
+vpc_cidr             = "10.0.0.0/16"
+public_subnet_cidrs  = ["10.0.0.0/24", "10.0.1.0/24"]
+private_subnet_cidrs = ["10.0.10.0/24", "10.0.11.0/24"]
+single_nat_gateway   = true # one NAT to save cost in Phase 1; set false for HA
+
+# Lock SSH to your admin IP, or leave "" and use SSM Session Manager (preferred).
+admin_ssh_cidr = "" # e.g. "203.0.113.10/32"
+
+# ---- Compute (EC2) ----
+instance_type       = "t3.large"
+root_volume_size_gb = 50
+key_pair_name       = "" # existing EC2 key pair, or "" for SSM-only access
+app_repo_url        = "https://github.com/your-org/edu-app.git"
+app_repo_branch     = "main"
+
+# ---- RDS PostgreSQL ----
+db_engine_version        = "16.4"
+db_instance_class        = "db.t3.medium"
+db_allocated_storage     = 50
+db_max_allocated_storage = 200
+db_multi_az              = true
+db_backup_retention_days = 7
+db_name                  = "eduapp"
+db_username              = "eduapp"
+# db_password            = "SET VIA TF_VAR_db_password"   # do NOT commit
+
+# ---- ElastiCache Redis ----
+redis_engine_version = "7.1"
+redis_node_type      = "cache.t3.micro"
+
+# ---- Kafka (MSK) ----
+enable_msk = false # Phase 1: self-host Kafka in the compose KRaft container
+
+# ---- S3 assets ----
+s3_bucket_name                        = "edu-assets-prod" # must be globally unique
+s3_noncurrent_version_expiration_days = 30
+
+# ---- DNS + TLS ----
+domain_name         = "example.com" # parent domain owning the Route53 zone
+api_subdomain       = "api"         # => api.example.com
+create_route53_zone = false         # true if this stack should create the zone
+
+# ---- SSM secrets path ----
+ssm_path_prefix = "/edu-app/prod"
+# jwt_secret    = "SET VIA TF_VAR_jwt_secret"   # >=32 chars; do NOT commit
+# sentry_dsn    = "SET VIA TF_VAR_sentry_dsn"   # optional
+
+# ---- CloudWatch alarms ----
+log_retention_days        = 30
+alarm_sns_topic_arn       = "" # e.g. "arn:aws:sns:ap-southeast-1:123456789012:edu-alerts"
+alb_5xx_threshold         = 10
+ec2_cpu_threshold_percent = 80

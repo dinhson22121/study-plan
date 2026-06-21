@@ -3,6 +3,7 @@ package middleware
 import (
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -47,6 +48,14 @@ func Recovery(log *zap.Logger) gin.HandlerFunc {
 					zap.Any("panic", r),
 					zap.String("path", c.Request.URL.Path),
 				)
+				// No-op when Sentry is not initialised (no DSN configured).
+				if hub := sentry.CurrentHub(); hub.Client() != nil {
+					hub.WithScope(func(scope *sentry.Scope) {
+						scope.SetTag("correlation_id", CorrelationIDFrom(c))
+						scope.SetTag("path", c.Request.URL.Path)
+						hub.Recover(r)
+					})
+				}
 				c.AbortWithStatus(500)
 			}
 		}()

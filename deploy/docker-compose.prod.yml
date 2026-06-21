@@ -1,0 +1,151 @@
+# Production override for the Edu App stack.
+#
+# Usage (from the repo root):
+#   docker compose -f docker-compose.yml -f deploy/docker-compose.prod.yml up -d
+#
+# What this override does on top of the base docker-compose.yml:
+#   - Adds an `nginx` reverse proxy on :80 / :443 in front of `app` (TLS + redirect).
+#   - Removes host port exposure of postgres/redis/kafka/minio (internal-only).
+#   - Removes host exposure of `app:8080` (only nginx talks to it).
+#   - Sets restart: unless-stopped on app/worker/nginx.
+#   - Drives every secret from the environment — NO committed defaults.
+#
+# Secrets / config: provide a root-level `.env` file (gitignored) or export the
+# vars in the shell / inject from SSM Parameter Store / Secrets Manager. Compose
+# substitutes `${VAR:?err}` and FAILS FAST if a required value is missing.
+#
+# ---------------------------------------------------------------------------
+# Using AWS managed services (RDS / ElastiCache / MSK / S3)
+# ---------------------------------------------------------------------------
+# When you point at managed services, DISABLE the matching local container so
+# compose does not start a redundant (and unsecured) copy. Two options:
+#   1. Add the service name to `COMPOSE_PROFILES` exclusion — or simpler:
+#   2. Use the `deploy/managed` profile shape below, which scales the local
+#      data services to 0 via `replicas: 0` under `deploy`.
+#
+# To run fully on managed services, set these in `.env` and disable the
+# postgres/redis/kafka/minio containers (see "MANAGED SERVICES" block at the
+# bottom of this file — uncomment the `deploy.replicas: 0` stanzas):
+#
+#   EDU_POSTGRES_URL=postgres://USER:PASSWORD@<rds-endpoint>:5432/eduapp?sslmode=require
+#   EDU_REDIS_URL=rediss://<elasticache-endpoint>:6379/0       # rediss:// = TLS
+#   EDU_KAFKA_BROKERS=<msk-bootstrap-broker-1>:9098,<msk-bootstrap-broker-2>:9098
+#   EDU_S3_ENDPOINT=                                           # empty = real AWS S3
+#   EDU_S3_REGION=ap-southeast-1
+#   EDU_S3_ACCESS_KEY=<iam-access-key>   # or omit and use an EC2 instance role
+#   EDU_S3_SECRET_KEY=<iam-secret-key>
+#   EDU_S3_BUCKET=edu-assets-prod
+#   EDU_S3_USE_PATH_STYLE=false
+#
+# NOTE: the base file's `app`/`worker`/`migrate` read EDU_POSTGRES_URL etc. from
+# the shared `x-app-env` anchor, whose values are interpolated from the host
+# environment here. The overrides below re-assert the security-sensitive keys so
+# that production refuses to boot with weak/empty values.
+
+x-prod-app-env: &prod-app-env
+  EDU_ENV: "production"
+  EDU_PORT: ":8080"
+  EDU_TIMEZONE: "Asia/Ho_Chi_Minh"
+  # Required secrets — compose fails fast if unset (the `?` form).
+  EDU_JWT_SECRET: "${EDU_JWT_SECRET:?EDU_JWT_SECRET is required in production}"
+  # Data-layer URLs: default to the in-network service hostnames, override via
+  # env to point at RDS / ElastiCache / MSK.
+  EDU_POSTGRES_URL: "${EDU_POSTGRES_URL:?EDU_POSTGRES_URL is required (use sslmode=require)}"
+  EDU_REDIS_URL: "${EDU_REDIS_URL:-redis://redis:6379/0}"
+  EDU_KAFKA_BROKERS: "${EDU_KAFKA_BROKERS:-kafka:29092}"
+  # S3 / object storage.
+  EDU_S3_ENDPOINT: "${EDU_S3_ENDPOINT:-http://minio:9000}"
+  EDU_S3_REGION: "${EDU_S3_REGION:-us-east-1}"
+  EDU_S3_ACCESS_KEY: "${EDU_S3_ACCESS_KEY:?EDU_S3_ACCESS_KEY is required}"
+  EDU_S3_SECRET_KEY: "${EDU_S3_SECRET_KEY:?EDU_S3_SECRET_KEY is required}"
+  EDU_S3_BUCKET: "${EDU_S3_BUCKET:-edu-assets}"
+  EDU_S3_USE_PATH_STYLE: "${EDU_S3_USE_PATH_STYLE:-false}"
+  # Observability.
+  EDU_SENTRY_DSN: "${EDU_SENTRY_DSN:-}"
+  EDU_SENTRY_ENVIRONMENT: "${EDU_SENTRY_ENVIRONMENT:-production}"
+  EDU_SENTRY_RELEASE: "${EDU_SENTRY_RELEASE:-}"
+  EDU_SENTRY_SAMPLE_RATE: "${EDU_SENTRY_SAMPLE_RATE:-0.1}"
+
+services:
+  # ---- Data services: keep on the internal network only (no host ports) ----
+  postgres:
+    # Drop the published host port (5432) so the DB is never reachable from the
+    # public interface. Override array replaces the base entirely.
+    ports: []
+    # Allow injecting the real password instead of the dev default "secret".
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-eduapp}"
+      POSTGRES_USER: "${POSTGRES_USER:-eduapp}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}"
+    restart: unless-stopped
+    # MANAGED SERVICES: when using RDS, disable this container:
+    # deploy:
+    #   replicas: 0
+
+  redis:
+    ports: []
+    restart: unless-stopped
+    # MANAGED SERVICES: when using ElastiCache, disable this container:
+    # deploy:
+    #   replicas: 0
+
+  kafka:
+    ports: []
+    restart: unless-stopped
+    # MANAGED SERVICES: when using MSK, disable this container:
+    # deploy:
+    #   replicas: 0
+
+  minio:
+    ports: []
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: "${EDU_S3_ACCESS_KEY:?EDU_S3_ACCESS_KEY is required}"
+      MINIO_ROOT_PASSWORD: "${EDU_S3_SECRET_KEY:?EDU_S3_SECRET_KEY is required}"
+    # MANAGED SERVICES: when using real AWS S3, disable this container AND the
+    # `minio-init` job (set EDU_S3_ENDPOINT empty so the SDK uses the AWS region):
+    # deploy:
+    #   replicas: 0
+
+  # ---- Migration job: same image, real prod env ----
+  migrate:
+    environment:
+      <<: *prod-app-env
+
+  # ---- API: no host port; only nginx reaches it over the compose network ----
+  app:
+    environment:
+      <<: *prod-app-env
+    ports: []
+    restart: unless-stopped
+
+  # ---- Worker ----
+  worker:
+    environment:
+      <<: *prod-app-env
+      EDU_S3_USE_PATH_STYLE: "${EDU_S3_USE_PATH_STYLE:-false}"
+      EDU_PARSER_POLL_INTERVAL: "${EDU_PARSER_POLL_INTERVAL:-5}"
+      EDU_PARSER_VERSION: "${EDU_PARSER_VERSION:-pdf-parser-mvp-1}"
+    restart: unless-stopped
+
+  # ---- Nginx reverse proxy: public entrypoint, TLS termination ----
+  nginx:
+    image: nginx:1.27-alpine
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Site config (reverse proxy, TLS, security headers).
+      - ./deploy/nginx/edu-app.conf:/etc/nginx/conf.d/edu-app.conf:ro
+      # TLS certs. Point this host dir at your ACM-exported / Let's Encrypt certs.
+      # Expected files: fullchain.pem + privkey.pem (see deploy/README.md).
+      - ${EDU_TLS_CERT_DIR:-./deploy/nginx/certs}:/etc/nginx/certs:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped

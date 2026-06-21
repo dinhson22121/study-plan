@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "AI Study Coach",
+    "slug": "ai-study-coach",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "aistudycoach",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#3b5bff",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.aistudycoach.app"
+    },
+    "android": {
+      "package": "com.aistudycoach.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#3b5bff"
+      },
+      "permissions": ["POST_NOTIFICATIONS"]
+    },
+    "plugins": [
+      "expo-dev-client",
+      "expo-secure-store",
+      "expo-font",
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
+      [
+        "expo-build-properties",
+        {
+          "android": { "minSdkVersion": 24 },
+          "ios": { "useFrameworks": "static" }
+        }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "REPLACE_WITH_SENTRY_ORG",
+          "project": "ai-study-coach"
+        }
+      ]
+    ],
+    "extra": {
+      "apiBaseUrl": "https://api.example.com/api/v1",
+      "sentryDsn": "",
+      "eas": { "projectId": "REPLACE_WITH_EAS_PROJECT_ID" }
+    }
+  }
+}

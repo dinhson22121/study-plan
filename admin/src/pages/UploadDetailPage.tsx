@@ -6,6 +6,7 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Dialog } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +26,7 @@ export function UploadDetailPage() {
   const asset = useAsset(assetId);
   const jobs = useParseJobs(assetId);
   const [linkOpen, setLinkOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const retry = useMutation({
     mutationFn: () => uploads.retryParse(assetId as string),
@@ -55,16 +57,15 @@ export function UploadDetailPage() {
         <h1 className="text-2xl font-bold text-slate-800">{a.original_filename}</h1>
         <div className="flex gap-2">
           <Link to={`/uploads/${a.id}/drafts`}>
-            <Button>Review & Publish</Button>
+            <Button data-testid="review-publish">Review & Publish</Button>
           </Link>
           <Button variant="secondary" onClick={() => setLinkOpen(true)}>
             Link entity
           </Button>
           <Button
             variant="danger"
-            onClick={() => {
-              if (confirm("Xoá asset này?")) remove.mutate();
-            }}
+            data-testid="delete-asset"
+            onClick={() => setDeleteOpen(true)}
             disabled={remove.isPending}
           >
             Xoá
@@ -139,6 +140,20 @@ export function UploadDetailPage() {
         onLinked={() => {
           setLinkOpen(false);
           qc.invalidateQueries({ queryKey: ["asset", assetId] });
+        }}
+      />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        danger
+        title="Xoá asset"
+        description="Asset này sẽ bị xoá. Hành động không thể hoàn tác. Bạn chắc chắn?"
+        confirmLabel="Xoá"
+        busy={remove.isPending}
+        onCancel={() => setDeleteOpen(false)}
+        onConfirm={() => {
+          setDeleteOpen(false);
+          remove.mutate();
         }}
       />
     </div>

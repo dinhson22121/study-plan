@@ -50,7 +50,7 @@ type fakePub struct{}
 func (fakePub) Publish(context.Context, string, []byte, []byte) error { return nil }
 
 func validatorFor(role string) middleware.TokenValidator {
-	return func(token string) (*middleware.Claims, error) {
+	return func(_ context.Context, token string) (*middleware.Claims, error) {
 		if len(token) > 6 && token[:6] == "valid-" {
 			return &middleware.Claims{UserID: token[6:], Role: role}, nil
 		}

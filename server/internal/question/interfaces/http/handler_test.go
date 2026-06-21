@@ -38,7 +38,7 @@ func sampleQuestion() *domain.Question {
 
 func newRouter(role string) *gin.Engine {
 	svc := application.NewService(&stubRepo{q: sampleQuestion()})
-	validate := func(token string) (*middleware.Claims, error) {
+	validate := func(_ context.Context, token string) (*middleware.Claims, error) {
 		return &middleware.Claims{UserID: "u1", Role: role}, nil
 	}
 	r := gin.New()

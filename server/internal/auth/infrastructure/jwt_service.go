@@ -37,6 +37,7 @@ func (s *JWTService) IssueAccess(userID string, role authdomain.Role) (string, i
 	claims := accessClaims{
 		Role: string(role),
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        uuid.NewString(),
 			Subject:   userID,
 			Issuer:    s.cfg.Issuer,
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -72,7 +73,11 @@ func (s *JWTService) ParseAccess(token string) (*authdomain.Claims, error) {
 	if err := s.parse(token, &claims); err != nil {
 		return nil, err
 	}
-	return &authdomain.Claims{UserID: claims.Subject, Role: authdomain.Role(claims.Role)}, nil
+	out := &authdomain.Claims{UserID: claims.Subject, Role: authdomain.Role(claims.Role), ID: claims.ID}
+	if claims.ExpiresAt != nil {
+		out.ExpiresAt = claims.ExpiresAt.Time
+	}
+	return out, nil
 }
 
 func (s *JWTService) ParseRefresh(token string) (*authdomain.RefreshClaims, error) {

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -23,7 +24,7 @@ type Claims struct {
 	Role   string
 }
 
-type TokenValidator func(token string) (*Claims, error)
+type TokenValidator func(ctx context.Context, token string) (*Claims, error)
 
 func Auth(validate TokenValidator) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -33,7 +34,7 @@ func Auth(validate TokenValidator) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		claims, err := validate(token)
+		claims, err := validate(c.Request.Context(), token)
 		if err != nil {
 			httpx.Fail(c, domain.ErrUnauthorized.WithCause(err))
 			c.Abort()

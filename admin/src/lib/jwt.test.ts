@@ -17,4 +17,17 @@ describe("decodeJwt", () => {
     expect(decodeJwt("not-a-jwt")).toBeNull();
     expect(decodeJwt("a.b.c")).toBeNull();
   });
+
+  it("returns null for an empty string", () => {
+    expect(decodeJwt("")).toBeNull();
+  });
+
+  it("decodes base64url payloads containing - and _", () => {
+    // Build a payload whose base64 contains url-unsafe chars, then url-encode it.
+    const payload = { sub: "u/+1", role: "ADMIN", exp: 9999999999 };
+    const std = btoa(JSON.stringify(payload));
+    const urlSafe = std.replace(/\+/g, "-").replace(/\//g, "_");
+    const token = `${btoa("{}")}.${urlSafe}.sig`;
+    expect(decodeJwt(token)).toEqual(payload);
+  });
 });

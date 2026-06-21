@@ -2,6 +2,7 @@ package domain
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	shared "github.com/son-ngo/edu-app/internal/shared/domain"
@@ -38,10 +39,25 @@ func TestNewUserCredential_RejectsBadInput(t *testing.T) {
 }
 
 func TestValidatePassword(t *testing.T) {
-	if err := ValidatePassword("short"); !errors.Is(err, shared.ErrValidation) {
-		t.Fatalf("expected validation error for short password")
+	rejected := []struct{ name, pw string }{
+		{"too short", "abc12"},
+		{"nine chars", "abcdefg12"},
+		{"no digit", "abcdefghij"},
+		{"no letter", "1234567890"},
+		{"too long", strings.Repeat("a1", 37)},
 	}
-	if err := ValidatePassword("longenough"); err != nil {
-		t.Fatalf("unexpected error for valid password: %v", err)
+	for _, tc := range rejected {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := ValidatePassword(tc.pw); !errors.Is(err, shared.ErrValidation) {
+				t.Fatalf("expected validation error for %q, got %v", tc.pw, err)
+			}
+		})
+	}
+
+	accepted := []string{"abcdefgh12", "Str0ngPass!", strings.Repeat("a1", 36)}
+	for _, pw := range accepted {
+		if err := ValidatePassword(pw); err != nil {
+			t.Fatalf("unexpected error for valid password %q: %v", pw, err)
+		}
 	}
 }

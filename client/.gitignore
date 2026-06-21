@@ -1,0 +1,26 @@
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native builds
+/ios
+/android
+*.apk
+*.aab
+
+# Secrets / native config — never commit
+google-services.json
+GoogleService-Info.plist
+.env
+.env.*
+!.env.example
+
+# Metro / misc
+.metro-health-check*
+*.log
+.DS_Store

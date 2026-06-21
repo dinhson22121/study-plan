@@ -9,16 +9,30 @@ import (
 )
 
 type Config struct {
-	Env      string         `mapstructure:"env"`
-	Port     string         `mapstructure:"port"`
-	Timezone string         `mapstructure:"timezone"`
-	Postgres PostgresConfig `mapstructure:"postgres"`
-	Redis    RedisConfig    `mapstructure:"redis"`
-	Kafka    KafkaConfig    `mapstructure:"kafka"`
-	JWT      JWTConfig      `mapstructure:"jwt"`
-	FCM      FCMConfig      `mapstructure:"fcm"`
-	S3       S3Config       `mapstructure:"s3"`
-	Upload   UploadConfig   `mapstructure:"upload"`
+	Env       string          `mapstructure:"env"`
+	Port      string          `mapstructure:"port"`
+	Timezone  string          `mapstructure:"timezone"`
+	Postgres  PostgresConfig  `mapstructure:"postgres"`
+	Redis     RedisConfig     `mapstructure:"redis"`
+	Kafka     KafkaConfig     `mapstructure:"kafka"`
+	JWT       JWTConfig       `mapstructure:"jwt"`
+	FCM       FCMConfig       `mapstructure:"fcm"`
+	S3        S3Config        `mapstructure:"s3"`
+	Upload    UploadConfig    `mapstructure:"upload"`
+	RateLimit RateLimitConfig `mapstructure:"ratelimit"`
+	Sentry    SentryConfig    `mapstructure:"sentry"`
+}
+
+type RateLimitConfig struct {
+	AuthRequests int           `mapstructure:"auth_requests"`
+	AuthWindow   time.Duration `mapstructure:"auth_window"`
+}
+
+type SentryConfig struct {
+	DSN         string  `mapstructure:"dsn"`
+	Environment string  `mapstructure:"environment"`
+	Release     string  `mapstructure:"release"`
+	SampleRate  float64 `mapstructure:"sample_rate"`
 }
 
 type S3Config struct {
@@ -108,6 +122,8 @@ func bindEnvs(v *viper.Viper) {
 		"fcm.credentials_file", "fcm.project_id",
 		"s3.endpoint", "s3.region", "s3.access_key", "s3.secret_key", "s3.bucket", "s3.use_path_style",
 		"upload.max_file_size_bytes", "upload.presign_ttl",
+		"ratelimit.auth_requests", "ratelimit.auth_window",
+		"sentry.dsn", "sentry.environment", "sentry.release", "sentry.sample_rate",
 	}
 	for _, k := range keys {
 		_ = v.BindEnv(k)
@@ -130,6 +146,9 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("s3.use_path_style", true)
 	v.SetDefault("upload.max_file_size_bytes", 20*1024*1024)
 	v.SetDefault("upload.presign_ttl", 15*time.Minute)
+	v.SetDefault("ratelimit.auth_requests", 10)
+	v.SetDefault("ratelimit.auth_window", time.Minute)
+	v.SetDefault("sentry.sample_rate", 0.0)
 }
 
 func (c *Config) validate() error {
@@ -149,5 +168,40 @@ func (c *Config) validate() error {
 	if len(missing) > 0 {
 		return fmt.Errorf("missing required config: %s", strings.Join(missing, ", "))
 	}
+	if strings.EqualFold(c.Env, "production") {
+		return c.validateProduction()
+	}
 	return nil
+}
+
+const minProdSecretLen = 32
+
+var weakSecrets = map[string]bool{
+	"dev-only-change-me-in-production": true,
+	"change-me-in-production":          true,
+	"dev-only-change-me":               true,
+}
+
+func (c *Config) validateProduction() error {
+	var problems []string
+	if weakSecrets[c.JWT.Secret] || len(c.JWT.Secret) < minProdSecretLen {
+		problems = append(problems, fmt.Sprintf("jwt.secret must be a strong non-default value of at least %d characters", minProdSecretLen))
+	}
+	if !postgresUsesTLS(c.Postgres.URL) {
+		problems = append(problems, "postgres.url must use sslmode=require (or stricter) in production")
+	}
+	if len(problems) > 0 {
+		return fmt.Errorf("insecure production config: %s", strings.Join(problems, "; "))
+	}
+	return nil
+}
+
+func postgresUsesTLS(url string) bool {
+	lower := strings.ToLower(url)
+	for _, mode := range []string{"sslmode=require", "sslmode=verify-ca", "sslmode=verify-full"} {
+		if strings.Contains(lower, mode) {
+			return true
+		}
+	}
+	return false
 }

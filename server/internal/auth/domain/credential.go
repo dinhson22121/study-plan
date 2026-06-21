@@ -3,8 +3,16 @@ package domain
 import (
 	"net/mail"
 	"strings"
+	"unicode"
 
 	"github.com/son-ngo/edu-app/internal/shared/domain"
+)
+
+const (
+	MinPasswordLength = 10
+	// MaxPasswordLength is a byte limit (bcrypt's effective input cap); compare
+	// with len(password), not len([]rune(password)).
+	MaxPasswordLength = 72
 )
 
 type Role string
@@ -48,8 +56,23 @@ func ValidateEmail(email string) error {
 }
 
 func ValidatePassword(password string) error {
-	if len(password) < 8 {
-		return domain.ErrValidation.WithMessage("password must be at least 8 characters")
+	if len(password) < MinPasswordLength {
+		return domain.ErrValidation.WithMessage("password must be at least 10 characters")
+	}
+	if len(password) > MaxPasswordLength {
+		return domain.ErrValidation.WithMessage("password must be at most 72 bytes")
+	}
+	var hasLetter, hasDigit bool
+	for _, r := range password {
+		switch {
+		case unicode.IsLetter(r):
+			hasLetter = true
+		case unicode.IsDigit(r):
+			hasDigit = true
+		}
+	}
+	if !hasLetter || !hasDigit {
+		return domain.ErrValidation.WithMessage("password must contain at least one letter and one digit")
 	}
 	return nil
 }

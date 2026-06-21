@@ -15,6 +15,8 @@ import (
 	"github.com/son-ngo/edu-app/internal/app"
 	"github.com/son-ngo/edu-app/internal/bootstrap"
 	"github.com/son-ngo/edu-app/internal/shared/eventbus"
+	"github.com/son-ngo/edu-app/internal/shared/metrics"
+	"github.com/son-ngo/edu-app/internal/shared/observability"
 	"github.com/son-ngo/edu-app/pkg/kafka"
 	"github.com/son-ngo/edu-app/pkg/postgres"
 	"github.com/son-ngo/edu-app/pkg/redis"
@@ -36,6 +38,22 @@ func run(log *zap.Logger) error {
 	if err != nil {
 		return err
 	}
+
+	sentryEnv := cfg.Sentry.Environment
+	if sentryEnv == "" {
+		sentryEnv = cfg.Env
+	}
+	flushSentry, sentryOn, err := observability.InitSentry(observability.SentryConfig{
+		DSN:         cfg.Sentry.DSN,
+		Environment: sentryEnv,
+		Release:     cfg.Sentry.Release,
+		SampleRate:  cfg.Sentry.SampleRate,
+	})
+	if err != nil {
+		return err
+	}
+	defer flushSentry()
+	log.Info("observability configured", zap.Bool("sentry_enabled", sentryOn))
 
 	db, err := postgres.Connect(ctx, postgres.Config{
 		URL: cfg.Postgres.URL, MaxConns: cfg.Postgres.MaxConns, MinConns: cfg.Postgres.MinConns,
@@ -63,6 +81,7 @@ func run(log *zap.Logger) error {
 		Producer: producer,
 		Bus:      eventbus.New(),
 		Log:      log,
+		Metrics:  metrics.New(),
 	}
 
 	workerCtx, cancelWorkers := context.WithCancel(ctx)

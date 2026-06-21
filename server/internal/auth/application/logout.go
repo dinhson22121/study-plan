@@ -16,3 +16,21 @@ func (s *Service) Logout(ctx context.Context, refreshToken string) error {
 	}
 	return nil
 }
+
+func (s *Service) RevokeAccessToken(ctx context.Context, accessToken string) error {
+	if s.blocklist == nil {
+		return nil
+	}
+	claims, err := s.tokens.ParseAccess(accessToken)
+	if err != nil || claims.ID == "" {
+		return nil
+	}
+	ttl := claims.ExpiresAt.Sub(s.now())
+	if ttl <= 0 {
+		return nil
+	}
+	if err := s.blocklist.Revoke(ctx, claims.ID, ttl); err != nil {
+		return domain.ErrInternal.WithCause(err)
+	}
+	return nil
+}

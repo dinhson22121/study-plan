@@ -66,7 +66,7 @@ func newTestRouter() *gin.Engine {
 		eventbus.New(),
 	)
 	r := gin.New()
-	NewHandler(svc, svc.ValidateAccessToken).Routes(r.Group("/api/v1"))
+	NewHandler(svc, svc.ValidateAccessToken, nil).Routes(r.Group("/api/v1"))
 	return r
 }
 
@@ -81,7 +81,7 @@ func doJSON(r *gin.Engine, method, path string, body any) *httptest.ResponseReco
 
 func TestRegisterEndpoint_CreatesAccount(t *testing.T) {
 	r := newTestRouter()
-	w := doJSON(r, http.MethodPost, "/api/v1/auth/register", gin.H{"email": "a@b.com", "password": "password1"})
+	w := doJSON(r, http.MethodPost, "/api/v1/auth/register", gin.H{"email": "a@b.com", "password": "password12"})
 	if w.Code != http.StatusCreated {
 		t.Fatalf("want 201, got %d: %s", w.Code, w.Body.String())
 	}
@@ -108,9 +108,9 @@ func TestRegisterEndpoint_ValidationError(t *testing.T) {
 
 func TestLoginEndpoint_FlowAndWrongPassword(t *testing.T) {
 	r := newTestRouter()
-	_ = doJSON(r, http.MethodPost, "/api/v1/auth/register", gin.H{"email": "a@b.com", "password": "password1"})
+	_ = doJSON(r, http.MethodPost, "/api/v1/auth/register", gin.H{"email": "a@b.com", "password": "password12"})
 
-	ok := doJSON(r, http.MethodPost, "/api/v1/auth/login", gin.H{"email": "a@b.com", "password": "password1"})
+	ok := doJSON(r, http.MethodPost, "/api/v1/auth/login", gin.H{"email": "a@b.com", "password": "password12"})
 	if ok.Code != http.StatusOK {
 		t.Fatalf("want 200 on valid login, got %d", ok.Code)
 	}
@@ -131,8 +131,8 @@ func TestLogoutEndpoint_RequiresAuth(t *testing.T) {
 
 func TestRegisterEndpoint_DuplicateConflict(t *testing.T) {
 	r := newTestRouter()
-	_ = doJSON(r, http.MethodPost, "/api/v1/auth/register", gin.H{"email": "a@b.com", "password": "password1"})
-	dup := doJSON(r, http.MethodPost, "/api/v1/auth/register", gin.H{"email": "a@b.com", "password": "password1"})
+	_ = doJSON(r, http.MethodPost, "/api/v1/auth/register", gin.H{"email": "a@b.com", "password": "password12"})
+	dup := doJSON(r, http.MethodPost, "/api/v1/auth/register", gin.H{"email": "a@b.com", "password": "password12"})
 	if dup.Code != http.StatusConflict {
 		t.Fatalf("want 409 on duplicate, got %d", dup.Code)
 	}

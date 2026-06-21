@@ -9,8 +9,10 @@ type TokenPair struct {
 }
 
 type Claims struct {
-	UserID string
-	Role   Role
+	UserID    string
+	Role      Role
+	ID        string
+	ExpiresAt time.Time
 }
 
 type RefreshClaims struct {
