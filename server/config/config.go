@@ -21,11 +21,16 @@ type Config struct {
 	Upload    UploadConfig    `mapstructure:"upload"`
 	RateLimit RateLimitConfig `mapstructure:"ratelimit"`
 	Sentry    SentryConfig    `mapstructure:"sentry"`
+	// TrustedProxies are the proxy CIDRs/IPs gin trusts for X-Forwarded-For so
+	// per-IP rate limiting sees the real client behind nginx/ALB.
+	TrustedProxies []string `mapstructure:"trusted_proxies"`
 }
 
 type RateLimitConfig struct {
 	AuthRequests int           `mapstructure:"auth_requests"`
 	AuthWindow   time.Duration `mapstructure:"auth_window"`
+	APIRequests  int           `mapstructure:"api_requests"`
+	APIWindow    time.Duration `mapstructure:"api_window"`
 }
 
 type SentryConfig struct {
@@ -123,7 +128,9 @@ func bindEnvs(v *viper.Viper) {
 		"s3.endpoint", "s3.region", "s3.access_key", "s3.secret_key", "s3.bucket", "s3.use_path_style",
 		"upload.max_file_size_bytes", "upload.presign_ttl",
 		"ratelimit.auth_requests", "ratelimit.auth_window",
+		"ratelimit.api_requests", "ratelimit.api_window",
 		"sentry.dsn", "sentry.environment", "sentry.release", "sentry.sample_rate",
+		"trusted_proxies",
 	}
 	for _, k := range keys {
 		_ = v.BindEnv(k)
@@ -148,7 +155,12 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("upload.presign_ttl", 15*time.Minute)
 	v.SetDefault("ratelimit.auth_requests", 10)
 	v.SetDefault("ratelimit.auth_window", time.Minute)
+	v.SetDefault("ratelimit.api_requests", 120)
+	v.SetDefault("ratelimit.api_window", time.Minute)
 	v.SetDefault("sentry.sample_rate", 0.0)
+	v.SetDefault("trusted_proxies", []string{
+		"127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16",
+	})
 }
 
 func (c *Config) validate() error {

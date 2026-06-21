@@ -50,6 +50,12 @@ upload:
 ratelimit:
   auth_requests: 10 # max auth attempts per window per client IP
   auth_window: "1m"
+  api_requests: 120 # max requests per window per client IP across all /api/v1
+  api_window: "1m"
+
+trusted_proxies: # proxy CIDRs trusted for X-Forwarded-For (per-IP limiting)
+  - "10.0.0.0/8"
+  - "172.16.0.0/12"
 
 sentry:
   dsn: "" # set EDU_SENTRY_DSN to enable error reporting; empty = disabled
