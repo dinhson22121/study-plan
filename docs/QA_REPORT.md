@@ -20,8 +20,10 @@
 | Admin e2e smoke (Playwright) | `npx playwright test` | ✅ **7 test** (backend mock qua route interception) |
 | Admin dependency audit | `npm audit` | ✅ 0 vuln |
 | Mobile typecheck | `tsc --noEmit` | ✅ clean (toàn bộ 13 màn) |
+| Mobile unit (Jest) | `npx jest` | ✅ **4 suite, 13 test** (api client, queryClient, authStore, Button) |
 | Mobile device QA | thủ công / Firebase Test Lab | ⏳ cần .aab + thiết bị |
-| Worker compile/lint | `py_compile` / `ruff` | ⏳ cần Python (chạy trong Docker/CI) |
+| Worker compile/lint/audit | `py_compile` / `ruff` / `pip-audit` | ⏳ chạy trong CI job `worker` (máy build không có Python) |
+| CI gates | GitHub Actions | backend(+govulncheck) · admin(+vitest+audit) · client(tsc+jest) · worker(compile+ruff+pip-audit) |
 
 ## 2. Backend QA (H1)
 
