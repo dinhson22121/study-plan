@@ -30,6 +30,26 @@ make deploy
 Run `make help` to list every target. Component-specific docs live in each
 folder's own `README.md`.
 
+## Local object storage (MinIO)
+
+This repo supports **local S3-compatible storage** via **MinIO** out of the box.
+
+```bash
+make s3-up       # start MinIO + bucket bootstrap
+make s3-console  # print console URL and credentials
+make s3-smoke    # verify health + bucket
+```
+
+Windows (if `make` is unavailable):
+
+```powershell
+powershell -File deploy/scripts/minio-local.ps1 start
+powershell -File deploy/scripts/minio-local.ps1 console
+powershell -File deploy/scripts/minio-local.ps1 smoke
+```
+
+See `docs/LOCAL_MINIO_SETUP.md` for the full setup and how to switch to real S3 later.
+
 ## Tech stack
 
 - **Backend** — Go 1.23, Gin, pgx/v5, golang-migrate, segmentio/kafka-go, aws-sdk-go-v2, Firebase FCM.
