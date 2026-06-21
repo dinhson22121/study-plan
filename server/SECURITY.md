@@ -27,15 +27,25 @@ learning project. No CRITICAL issues were found.
 - **AuthZ** — every write/admin route is guarded by `RequireRole(ADMIN)`; `/me`-scoped and ownership-checked reads prevent cross-user access (studyplan, placement, quiz, analytics).
 - **Secrets** — no hardcoded production secrets; FCM creds and `.env` are gitignored; config validates required secrets at startup.
 
-## Deferred / accepted for a learning project
+## Closed in Phase 1 go-live hardening (Workstream B)
 
-These are documented trade-offs, acceptable for local/learning use but **required before any real deployment**:
+| Deferred item | How it was closed |
+|---------------|-------------------|
+| **Rate limiting** | Redis fixed-window limiter (`internal/shared/ratelimit`) applied to `/auth/login`, `/auth/register`, `/auth/refresh` via `middleware.RateLimit`. Per-IP, configurable (`ratelimit.auth_requests` / `auth_window`, default 10/min). INCR+EXPIRE run as one atomic Lua call (no orphan-TTL race). Returns `429 TOO_MANY_REQUESTS`. The middleware fails **open** on a Redis error — acceptable because the auth operations it guards (`issueTokenPair` → refresh-token `Save`) already hard-depend on Redis, so a Redis outage breaks login/register itself rather than opening a brute-force window. |
+| **Dev secrets in committed config** | Production startup validation (`config.validateProduction`) rejects known default and short (<32-char) JWT secrets. Shipped `config/config.example.yaml` and `server/.env.example`; production supplies all secrets via `EDU_*`. |
+| **Transport security (Postgres)** | Production validation requires `postgres.url` to use `sslmode=require` (or `verify-ca` / `verify-full`); `sslmode=disable` is rejected when `env=production`. |
+| **Password policy** | Minimum length raised to 10, capped at 72 bytes (bcrypt's effective limit — prevents silent truncation), and must contain at least one letter and one digit (`authdomain.ValidatePassword`). |
+| **Access-token revocation** | Access tokens now carry a `jti`; `POST /auth/logout` revokes both the refresh token and the presented access token via a Redis blocklist (`auth:revoked:<jti>`, TTL = remaining access lifetime), checked in `ValidateAccessToken`. |
 
-1. **Rate limiting** — login/register are unthrottled. Add IP-based throttling (e.g. `golang.org/x/time/rate`) before exposing publicly.
-2. **Dev secrets in committed config** — `config/config.yaml` and `docker-compose.yml` carry dev-only credentials (JWT secret, Postgres password). Production must supply these via `EDU_*` env vars; remove the committed defaults and ship a `.example`.
-3. **Transport security** — local Postgres uses `sslmode=disable` and Kafka is PLAINTEXT/unauthenticated. Production needs `sslmode=require` and SASL/mTLS on Kafka.
-4. **Password policy** — minimum length 8 only; consider complexity / breached-password checks.
-5. **Access-token revocation** — access tokens are valid until their 15-minute TTL (refresh tokens are revocable). Add a Redis blocklist if immediate revocation is required.
+Operational add-on: `GET /health/ready` performs a Postgres + Redis ping for readiness probes; `GET /health` remains the liveness check.
+
+## Deferred / still required before production
+
+These remain open and are tracked in the go-live plan (Workstream B/C/G):
+
+1. **Kafka transport security** — brokers are PLAINTEXT/unauthenticated locally. Production needs SASL/mTLS (e.g. Amazon MSK with IAM/TLS); not enforceable from the broker list at config-load time, so this is an infra deployment requirement.
+2. **Observability** — structured logging and correlation IDs exist; still to add: Sentry (needs a DSN) and a metrics endpoint (request latency, 4xx/5xx rate, Kafka lag, parse/upload failure rates).
+3. **Breached-password checks** — password policy enforces length + composition but does not yet check against a breached-password corpus (e.g. HIBP k-anonymity).
 
 ## Known design trade-offs (intentional)
 

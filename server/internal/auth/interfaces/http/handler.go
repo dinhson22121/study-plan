@@ -1,6 +1,8 @@
 package authhttp
 
 import (
+	"strings"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/son-ngo/edu-app/internal/auth/application"
@@ -12,23 +14,25 @@ import (
 type Handler struct {
 	svc      *application.Service
 	validate middleware.TokenValidator
+	limiter  middleware.RateLimiter
 }
 
-func NewHandler(svc *application.Service, validate middleware.TokenValidator) *Handler {
-	return &Handler{svc: svc, validate: validate}
+func NewHandler(svc *application.Service, validate middleware.TokenValidator, limiter middleware.RateLimiter) *Handler {
+	return &Handler{svc: svc, validate: validate, limiter: limiter}
 }
 
 func (h *Handler) Routes(rg *gin.RouterGroup) {
 	g := rg.Group("/auth")
-	g.POST("/register", h.register)
-	g.POST("/login", h.login)
-	g.POST("/refresh", h.refresh)
+	throttle := middleware.RateLimit(h.limiter, "auth")
+	g.POST("/register", throttle, h.register)
+	g.POST("/login", throttle, h.login)
+	g.POST("/refresh", throttle, h.refresh)
 	g.POST("/logout", middleware.Auth(h.validate), h.logout)
 }
 
 type credentialsRequest struct {
 	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=8"`
+	Password string `json:"password" binding:"required"`
 }
 
 type refreshRequest struct {
@@ -87,5 +91,19 @@ func (h *Handler) logout(c *gin.Context) {
 		httpx.Fail(c, err)
 		return
 	}
+	if access := bearerToken(c); access != "" {
+		if err := h.svc.RevokeAccessToken(c.Request.Context(), access); err != nil {
+			httpx.Fail(c, err)
+			return
+		}
+	}
 	httpx.OK(c, gin.H{"message": "logged out"})
+}
+
+func bearerToken(c *gin.Context) string {
+	parts := strings.SplitN(c.GetHeader("Authorization"), " ", 2)
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
+		return ""
+	}
+	return strings.TrimSpace(parts[1]) // already validated by the Auth middleware
 }

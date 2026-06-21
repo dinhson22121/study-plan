@@ -1,7 +1,9 @@
 package bootstrap
 
 import (
+	"context"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -30,6 +32,26 @@ func BuildRouter(deps *app.Deps) (*gin.Engine, *notification.Module) {
 
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
+
+	router.GET("/health/ready", func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
+		defer cancel()
+		checks := gin.H{"postgres": "ok", "redis": "ok"}
+		ready := true
+		if err := deps.DB.Ping(ctx); err != nil {
+			checks["postgres"] = "down"
+			ready = false
+		}
+		if err := deps.Redis.Ping(ctx).Err(); err != nil {
+			checks["redis"] = "down"
+			ready = false
+		}
+		status := http.StatusOK
+		if !ready {
+			status = http.StatusServiceUnavailable
+		}
+		c.JSON(status, gin.H{"ready": ready, "checks": checks})
 	})
 
 	v1 := router.Group("/api/v1")

@@ -3,6 +3,7 @@
 .vscode/
 .env
 .env.*
+!.env.example
 *.local.yaml
 
 # Coverage / build output

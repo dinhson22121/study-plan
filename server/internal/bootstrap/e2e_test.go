@@ -122,7 +122,7 @@ func TestE2E_StudentActivityLoop(t *testing.T) {
 	c := &client{t: t, router: router}
 
 	email := uuid.NewString() + "@e2e.test"
-	reg := c.do(http.MethodPost, "/api/v1/auth/register", gin.H{"email": email, "password": "password1"})
+	reg := c.do(http.MethodPost, "/api/v1/auth/register", gin.H{"email": email, "password": "password12"})
 	c.token = reg["data"].(map[string]any)["access_token"].(string)
 	if c.token == "" {
 		t.Fatal("no access token from register")

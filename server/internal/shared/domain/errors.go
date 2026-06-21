@@ -51,6 +51,7 @@ var (
 	ErrMaxRetriesExceeded = newDomain("MAX_RETRIES_EXCEEDED", "notification failed after retries")
 	ErrPreferenceDisabled = newDomain("NOTIF_DISABLED", "user disabled this notification type")
 	ErrDuplicateMessage   = newDomain("DUPLICATE_MESSAGE", "idempotency key already processed")
+	ErrTooManyRequests    = newDomain("TOO_MANY_REQUESTS", "rate limit exceeded, retry later")
 )
 
 func AsDomainError(err error) *DomainError {

@@ -54,10 +54,15 @@ func (fakeHasher) Compare(hash, pw string) error {
 	return domain.ErrUnauthorized
 }
 
-type fakeTokens struct{ jtiSeq int }
+type fakeTokens struct {
+	jtiSeq    int
+	accessSeq int
+}
 
 func (t *fakeTokens) IssueAccess(userID string, role authdomain.Role) (string, int64, error) {
-	return "A|" + userID + "|" + string(role), time.Unix(1000, 0).Unix(), nil
+	t.accessSeq++
+	jti := "ajti" + strconv.Itoa(t.accessSeq)
+	return "A|" + userID + "|" + string(role) + "|" + jti, time.Unix(1000, 0).Unix(), nil
 }
 func (t *fakeTokens) IssueRefresh(userID string) (string, string, error) {
 	t.jtiSeq++
@@ -66,10 +71,10 @@ func (t *fakeTokens) IssueRefresh(userID string) (string, string, error) {
 }
 func (t *fakeTokens) ParseAccess(token string) (*authdomain.Claims, error) {
 	p := strings.Split(token, "|")
-	if len(p) != 3 || p[0] != "A" {
+	if len(p) != 4 || p[0] != "A" {
 		return nil, domain.ErrUnauthorized
 	}
-	return &authdomain.Claims{UserID: p[1], Role: authdomain.Role(p[2])}, nil
+	return &authdomain.Claims{UserID: p[1], Role: authdomain.Role(p[2]), ID: p[3], ExpiresAt: time.Unix(1000, 0)}, nil
 }
 func (t *fakeTokens) ParseRefresh(token string) (*authdomain.RefreshClaims, error) {
 	p := strings.Split(token, "|")
@@ -95,6 +100,17 @@ func (s *fakeRefreshStore) Delete(_ context.Context, u, j string) error {
 	return nil
 }
 
+type fakeBlocklist struct{ revoked map[string]bool }
+
+func newFakeBlocklist() *fakeBlocklist { return &fakeBlocklist{revoked: map[string]bool{}} }
+func (b *fakeBlocklist) Revoke(_ context.Context, jti string, _ time.Duration) error {
+	b.revoked[jti] = true
+	return nil
+}
+func (b *fakeBlocklist) IsRevoked(_ context.Context, jti string) (bool, error) {
+	return b.revoked[jti], nil
+}
+
 func newTestService(t *testing.T) (*Service, *fakeRepo, *fakeRefreshStore, *eventbus.Bus) {
 	t.Helper()
 	repo := newFakeRepo()
@@ -114,7 +130,7 @@ func TestRegister_CreatesCredentialPublishesEventAndReturnsTokens(t *testing.T) 
 		return nil
 	})
 
-	pair, err := svc.Register(context.Background(), RegisterInput{Email: "A@b.com", Password: "password1"})
+	pair, err := svc.Register(context.Background(), RegisterInput{Email: "A@b.com", Password: "password12"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -134,8 +150,8 @@ func TestRegister_CreatesCredentialPublishesEventAndReturnsTokens(t *testing.T) 
 
 func TestRegister_RejectsDuplicateEmail(t *testing.T) {
 	svc, _, _, _ := newTestService(t)
-	_, _ = svc.Register(context.Background(), RegisterInput{Email: "a@b.com", Password: "password1"})
-	_, err := svc.Register(context.Background(), RegisterInput{Email: "a@b.com", Password: "password1"})
+	_, _ = svc.Register(context.Background(), RegisterInput{Email: "a@b.com", Password: "password12"})
+	_, err := svc.Register(context.Background(), RegisterInput{Email: "a@b.com", Password: "password12"})
 	if !errors.Is(err, domain.ErrConflict) {
 		t.Fatalf("expected conflict, got %v", err)
 	}
@@ -154,7 +170,7 @@ func TestRegister_FailsWhenEventHandlerFails(t *testing.T) {
 	bus.Subscribe(authdomain.EventUserRegistered, func(context.Context, domain.DomainEvent) error {
 		return errors.New("profile creation failed")
 	})
-	_, err := svc.Register(context.Background(), RegisterInput{Email: "a@b.com", Password: "password1"})
+	_, err := svc.Register(context.Background(), RegisterInput{Email: "a@b.com", Password: "password12"})
 	if !errors.Is(err, domain.ErrInternal) {
 		t.Fatalf("expected internal error when handler fails, got %v", err)
 	}
@@ -162,8 +178,8 @@ func TestRegister_FailsWhenEventHandlerFails(t *testing.T) {
 
 func TestLogin_SucceedsWithCorrectPassword(t *testing.T) {
 	svc, _, _, _ := newTestService(t)
-	_, _ = svc.Register(context.Background(), RegisterInput{Email: "a@b.com", Password: "password1"})
-	pair, err := svc.Login(context.Background(), LoginInput{Email: "A@b.com", Password: "password1"})
+	_, _ = svc.Register(context.Background(), RegisterInput{Email: "a@b.com", Password: "password12"})
+	pair, err := svc.Login(context.Background(), LoginInput{Email: "A@b.com", Password: "password12"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -174,19 +190,19 @@ func TestLogin_SucceedsWithCorrectPassword(t *testing.T) {
 
 func TestLogin_FailsWithWrongPasswordOrUnknownEmail(t *testing.T) {
 	svc, _, _, _ := newTestService(t)
-	_, _ = svc.Register(context.Background(), RegisterInput{Email: "a@b.com", Password: "password1"})
+	_, _ = svc.Register(context.Background(), RegisterInput{Email: "a@b.com", Password: "password12"})
 
 	if _, err := svc.Login(context.Background(), LoginInput{Email: "a@b.com", Password: "wrongpass"}); !errors.Is(err, domain.ErrUnauthorized) {
 		t.Fatalf("expected unauthorized for wrong password, got %v", err)
 	}
-	if _, err := svc.Login(context.Background(), LoginInput{Email: "ghost@b.com", Password: "password1"}); !errors.Is(err, domain.ErrUnauthorized) {
+	if _, err := svc.Login(context.Background(), LoginInput{Email: "ghost@b.com", Password: "password12"}); !errors.Is(err, domain.ErrUnauthorized) {
 		t.Fatalf("expected unauthorized for unknown email, got %v", err)
 	}
 }
 
 func TestRefresh_RotatesAndRevokesOldToken(t *testing.T) {
 	svc, _, store, _ := newTestService(t)
-	pair, _ := svc.Register(context.Background(), RegisterInput{Email: "a@b.com", Password: "password1"})
+	pair, _ := svc.Register(context.Background(), RegisterInput{Email: "a@b.com", Password: "password12"})
 
 	newPair, err := svc.Refresh(context.Background(), pair.RefreshToken)
 	if err != nil {
@@ -206,7 +222,7 @@ func TestRefresh_RotatesAndRevokesOldToken(t *testing.T) {
 
 func TestLogout_RevokesRefreshToken(t *testing.T) {
 	svc, _, store, _ := newTestService(t)
-	pair, _ := svc.Register(context.Background(), RegisterInput{Email: "a@b.com", Password: "password1"})
+	pair, _ := svc.Register(context.Background(), RegisterInput{Email: "a@b.com", Password: "password12"})
 
 	if err := svc.Logout(context.Background(), pair.RefreshToken); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -221,16 +237,51 @@ func TestLogout_RevokesRefreshToken(t *testing.T) {
 
 func TestValidateAccessToken(t *testing.T) {
 	svc, _, _, _ := newTestService(t)
-	pair, _ := svc.Register(context.Background(), RegisterInput{Email: "a@b.com", Password: "password1"})
+	pair, _ := svc.Register(context.Background(), RegisterInput{Email: "a@b.com", Password: "password12"})
 
-	claims, err := svc.ValidateAccessToken(pair.AccessToken)
+	claims, err := svc.ValidateAccessToken(context.Background(), pair.AccessToken)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if claims.Role != string(authdomain.RoleStudent) {
 		t.Fatalf("expected STUDENT role, got %s", claims.Role)
 	}
-	if _, err := svc.ValidateAccessToken("garbage"); !errors.Is(err, domain.ErrUnauthorized) {
+	if _, err := svc.ValidateAccessToken(context.Background(), "garbage"); !errors.Is(err, domain.ErrUnauthorized) {
 		t.Fatalf("expected unauthorized for garbage token, got %v", err)
+	}
+}
+
+func TestRevokeAccessToken_BlocksFutureValidation(t *testing.T) {
+	repo := newFakeRepo()
+	store := newFakeRefreshStore()
+	bus := eventbus.New()
+	bl := newFakeBlocklist()
+	svc := NewService(repo, fakeHasher{}, &fakeTokens{}, store, bus,
+		WithClock(func() time.Time { return time.Unix(500, 0) }), WithBlocklist(bl))
+
+	pair, err := svc.Register(context.Background(), RegisterInput{Email: "a@b.com", Password: "password12"})
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	if _, err := svc.ValidateAccessToken(context.Background(), pair.AccessToken); err != nil {
+		t.Fatalf("token should validate before revocation: %v", err)
+	}
+	if err := svc.RevokeAccessToken(context.Background(), pair.AccessToken); err != nil {
+		t.Fatalf("revoke: %v", err)
+	}
+	if _, err := svc.ValidateAccessToken(context.Background(), pair.AccessToken); !errors.Is(err, domain.ErrUnauthorized) {
+		t.Fatalf("revoked token should be rejected, got %v", err)
+	}
+}
+
+func TestRevokeAccessToken_NoBlocklistIsNoop(t *testing.T) {
+	svc, _, _, _ := newTestService(t)
+	pair, _ := svc.Register(context.Background(), RegisterInput{Email: "a@b.com", Password: "password12"})
+	if err := svc.RevokeAccessToken(context.Background(), pair.AccessToken); err != nil {
+		t.Fatalf("revoke without blocklist should be a no-op, got %v", err)
+	}
+	if _, err := svc.ValidateAccessToken(context.Background(), pair.AccessToken); err != nil {
+		t.Fatalf("without blocklist token stays valid, got %v", err)
 	}
 }

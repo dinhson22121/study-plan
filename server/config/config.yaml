@@ -41,3 +41,7 @@ s3:
 upload:
   max_file_size_bytes: 20971520 # 20 MB
   presign_ttl: "15m"
+
+ratelimit:
+  auth_requests: 10 # max auth attempts per window per client IP
+  auth_window: "1m"

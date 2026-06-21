@@ -69,6 +69,8 @@ func StatusForCode(code string) int {
 		return http.StatusServiceUnavailable
 	case domain.ErrDuplicateMessage.Code:
 		return http.StatusOK
+	case domain.ErrTooManyRequests.Code:
+		return http.StatusTooManyRequests
 	default:
 		return http.StatusInternalServerError
 	}

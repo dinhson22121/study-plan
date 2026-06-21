@@ -1,0 +1,52 @@
+# Configuration template. Copy to config.yaml for local development, or supply
+# every value via EDU_* environment variables in staging/production.
+#
+# In production (env: production) the app refuses to start unless:
+#   - jwt.secret is a strong, non-default value of at least 32 characters
+#   - postgres.url uses sslmode=require (or verify-ca / verify-full)
+# Never commit real secrets — set them through env vars or a secret manager.
+
+env: production
+port: ":8080"
+timezone: "Asia/Ho_Chi_Minh"
+
+postgres:
+  url: "postgres://USER:PASSWORD@HOST:5432/eduapp?sslmode=require"
+  max_conns: 10
+  min_conns: 2
+  migration_dir: "migrations"
+
+redis:
+  url: "redis://HOST:6379/0"
+
+kafka:
+  brokers:
+    - "HOST:9092"
+  group_id: "edu-app"
+  partitions: 1
+
+jwt:
+  secret: "" # REQUIRED via EDU_JWT_SECRET — generate with: openssl rand -base64 48
+  access_ttl: "15m"
+  refresh_ttl: "720h"
+  issuer: "edu-app"
+
+fcm:
+  credentials_file: "config/firebase-service-account.json"
+  project_id: ""
+
+s3:
+  endpoint: "" # empty = real AWS S3; set to MinIO URL for local
+  region: "us-east-1"
+  access_key: "" # REQUIRED via EDU_S3_ACCESS_KEY
+  secret_key: "" # REQUIRED via EDU_S3_SECRET_KEY
+  bucket: "edu-assets"
+  use_path_style: false # true for MinIO, false for AWS S3
+
+upload:
+  max_file_size_bytes: 20971520 # 20 MB
+  presign_ttl: "15m"
+
+ratelimit:
+  auth_requests: 10 # max auth attempts per window per client IP
+  auth_window: "1m"

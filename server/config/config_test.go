@@ -65,3 +65,51 @@ func TestLoad_FailsWhenRequiredMissing(t *testing.T) {
 		t.Fatalf("expected error for missing jwt.secret")
 	}
 }
+
+func setBaseProdEnv(t *testing.T) {
+	t.Helper()
+	chdirTemp(t)
+	t.Setenv("EDU_ENV", "production")
+	t.Setenv("EDU_REDIS_URL", "redis://cache:6379/0")
+	t.Setenv("EDU_KAFKA_BROKERS", "b1:9092")
+}
+
+func TestLoad_ProductionRejectsWeakSecret(t *testing.T) {
+	setBaseProdEnv(t)
+	t.Setenv("EDU_POSTGRES_URL", "postgres://u:p@db:5432/x?sslmode=require")
+	t.Setenv("EDU_JWT_SECRET", "dev-only-change-me-in-production")
+
+	if _, err := Load(); err == nil {
+		t.Fatalf("expected error for weak production jwt secret")
+	}
+}
+
+func TestLoad_ProductionRejectsShortSecret(t *testing.T) {
+	setBaseProdEnv(t)
+	t.Setenv("EDU_POSTGRES_URL", "postgres://u:p@db:5432/x?sslmode=require")
+	t.Setenv("EDU_JWT_SECRET", "tooshort")
+
+	if _, err := Load(); err == nil {
+		t.Fatalf("expected error for short production jwt secret")
+	}
+}
+
+func TestLoad_ProductionRejectsInsecurePostgres(t *testing.T) {
+	setBaseProdEnv(t)
+	t.Setenv("EDU_POSTGRES_URL", "postgres://u:p@db:5432/x?sslmode=disable")
+	t.Setenv("EDU_JWT_SECRET", "a-sufficiently-long-production-secret-value")
+
+	if _, err := Load(); err == nil {
+		t.Fatalf("expected error for insecure postgres sslmode in production")
+	}
+}
+
+func TestLoad_ProductionAcceptsStrongConfig(t *testing.T) {
+	setBaseProdEnv(t)
+	t.Setenv("EDU_POSTGRES_URL", "postgres://u:p@db:5432/x?sslmode=require")
+	t.Setenv("EDU_JWT_SECRET", "a-sufficiently-long-production-secret-value")
+
+	if _, err := Load(); err != nil {
+		t.Fatalf("unexpected error for valid production config: %v", err)
+	}
+}

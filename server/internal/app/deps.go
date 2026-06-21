@@ -32,6 +32,8 @@ type Deps struct {
 
 	AuthValidate middleware.TokenValidator
 
+	AuthRateLimiter middleware.RateLimiter
+
 	Notifier Notifier
 
 	ReengagementSource ReengagementSource

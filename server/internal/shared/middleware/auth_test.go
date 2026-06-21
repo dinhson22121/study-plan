@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -23,7 +24,7 @@ func newRouter(validate TokenValidator) *gin.Engine {
 }
 
 func validatorReturning(userID, role string, err error) TokenValidator {
-	return func(string) (*Claims, error) {
+	return func(context.Context, string) (*Claims, error) {
 		if err != nil {
 			return nil, err
 		}

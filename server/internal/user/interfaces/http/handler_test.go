@@ -43,7 +43,7 @@ func (r *memRepo) Update(_ context.Context, u *userdomain.User) error {
 }
 
 func validatorFor() middleware.TokenValidator {
-	return func(token string) (*middleware.Claims, error) {
+	return func(_ context.Context, token string) (*middleware.Claims, error) {
 		if len(token) > 6 && token[:6] == "valid-" {
 			return &middleware.Claims{UserID: token[6:], Role: middleware.RoleStudent}, nil
 		}
