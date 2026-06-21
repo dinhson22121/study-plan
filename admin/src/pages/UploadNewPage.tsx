@@ -101,7 +101,7 @@ export function UploadNewPage() {
               {file.name} · {formatBytes(file.size)}
             </div>
           )}
-          <Button onClick={submit} disabled={!file || busy} className="w-full">
+          <Button onClick={submit} disabled={!file || busy} className="w-full" data-testid="upload-submit">
             {phaseLabel[phase]}
           </Button>
         </CardBody>

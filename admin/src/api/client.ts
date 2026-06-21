@@ -53,9 +53,13 @@ api.interceptors.response.use(
 
     if (status === 401 && original && !original._retry && tokenStore.refresh) {
       original._retry = true;
-      refreshing = refreshing ?? refreshAccessToken();
+      // Single-flight: concurrent 401s share one in-flight refresh promise.
+      if (!refreshing) {
+        refreshing = refreshAccessToken().finally(() => {
+          refreshing = null;
+        });
+      }
       const newToken = await refreshing;
-      refreshing = null;
       if (newToken) {
         original.headers.Authorization = `Bearer ${newToken}`;
         return api(original);

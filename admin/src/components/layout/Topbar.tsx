@@ -16,7 +16,7 @@ export function Topbar() {
       <div className="text-sm text-slate-500">Admin Console</div>
       <div className="flex items-center gap-3">
         <span className="text-sm text-slate-600">{user?.id?.slice(0, 8)} · {user?.role}</span>
-        <Button variant="secondary" size="sm" onClick={handleLogout}>
+        <Button variant="secondary" size="sm" onClick={handleLogout} data-testid="logout">
           Đăng xuất
         </Button>
       </div>

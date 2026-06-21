@@ -3,4 +3,6 @@ export const env = {
   appName: import.meta.env.VITE_APP_NAME ?? "Edu Admin",
   pollIntervalMs: Number(import.meta.env.VITE_POLL_INTERVAL_MS ?? 5000),
   uploadMaxFileSizeBytes: Number(import.meta.env.VITE_UPLOAD_MAX_FILE_SIZE_BYTES ?? 20 * 1024 * 1024),
+  sentryDsn: import.meta.env.VITE_SENTRY_DSN ?? "",
+  appEnv: import.meta.env.VITE_APP_ENV ?? import.meta.env.MODE ?? "development",
 };
