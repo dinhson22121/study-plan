@@ -37,14 +37,18 @@ learning project. No CRITICAL issues were found.
 | **Password policy** | Minimum length raised to 10, capped at 72 bytes (bcrypt's effective limit — prevents silent truncation), and must contain at least one letter and one digit (`authdomain.ValidatePassword`). |
 | **Access-token revocation** | Access tokens now carry a `jti`; `POST /auth/logout` revokes both the refresh token and the presented access token via a Redis blocklist (`auth:revoked:<jti>`, TTL = remaining access lifetime), checked in `ValidateAccessToken`. |
 
-Operational add-on: `GET /health/ready` performs a Postgres + Redis ping for readiness probes; `GET /health` remains the liveness check.
+Operational add-ons:
+- `GET /health/ready` performs a Postgres + Redis ping for readiness probes; `GET /health` remains the liveness check.
+- **Metrics:** `GET /metrics` exposes Prometheus metrics — per-route request count + latency histogram (`edu_http_*`), Go/process collectors, and an `edu_app_failures_total{domain,kind}` business-failure counter. See `internal/shared/metrics`.
+- **Error reporting:** Sentry is wired (`internal/shared/observability`) and captures recovered panics with correlation-id/path tags. Disabled (no-op) unless `EDU_SENTRY_DSN` is set.
+- **API contract:** frozen for Phase 1 clients in `docs/API.md`.
 
 ## Deferred / still required before production
 
 These remain open and are tracked in the go-live plan (Workstream B/C/G):
 
 1. **Kafka transport security** — brokers are PLAINTEXT/unauthenticated locally. Production needs SASL/mTLS (e.g. Amazon MSK with IAM/TLS); not enforceable from the broker list at config-load time, so this is an infra deployment requirement.
-2. **Observability** — structured logging and correlation IDs exist; still to add: Sentry (needs a DSN) and a metrics endpoint (request latency, 4xx/5xx rate, Kafka lag, parse/upload failure rates).
+2. **Metrics wiring depth** — HTTP, Go and process metrics are live and `RecordFailure` is available, but the per-domain failure counters (parse/upload/notification) and Kafka consumer lag are not yet instrumented at every call site. Kafka lag is best scraped from the broker/exporter rather than the app.
 3. **Breached-password checks** — password policy enforces length + composition but does not yet check against a breached-password corpus (e.g. HIBP k-anonymity).
 
 ## Known design trade-offs (intentional)

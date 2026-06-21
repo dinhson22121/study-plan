@@ -9,6 +9,7 @@ import (
 
 	"github.com/son-ngo/edu-app/config"
 	"github.com/son-ngo/edu-app/internal/shared/eventbus"
+	"github.com/son-ngo/edu-app/internal/shared/metrics"
 	"github.com/son-ngo/edu-app/internal/shared/middleware"
 	"github.com/son-ngo/edu-app/pkg/kafka"
 )
@@ -29,6 +30,7 @@ type Deps struct {
 	Producer kafka.Producer
 	Bus      *eventbus.Bus
 	Log      *zap.Logger
+	Metrics  *metrics.Metrics
 
 	AuthValidate middleware.TokenValidator
 

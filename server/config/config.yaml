@@ -45,3 +45,9 @@ upload:
 ratelimit:
   auth_requests: 10 # max auth attempts per window per client IP
   auth_window: "1m"
+
+sentry:
+  dsn: "" # empty = Sentry disabled (no-op). Set EDU_SENTRY_DSN in prod.
+  environment: "" # defaults to env (development/production) when blank
+  release: ""
+  sample_rate: 0.0 # traces sample rate; 0 disables tracing

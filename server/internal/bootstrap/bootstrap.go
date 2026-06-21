@@ -18,6 +18,7 @@ import (
 	"github.com/son-ngo/edu-app/internal/progress"
 	"github.com/son-ngo/edu-app/internal/question"
 	"github.com/son-ngo/edu-app/internal/quiz"
+	"github.com/son-ngo/edu-app/internal/shared/metrics"
 	"github.com/son-ngo/edu-app/internal/shared/middleware"
 	"github.com/son-ngo/edu-app/internal/studyplan"
 	"github.com/son-ngo/edu-app/internal/user"
@@ -27,8 +28,14 @@ func BuildRouter(deps *app.Deps) (*gin.Engine, *notification.Module) {
 	if deps.Cfg.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
+	if deps.Metrics == nil {
+		deps.Metrics = metrics.New()
+	}
+
 	router := gin.New()
-	router.Use(middleware.Logger(deps.Log), middleware.Recovery(deps.Log))
+	router.Use(middleware.Logger(deps.Log), middleware.Recovery(deps.Log), deps.Metrics.Middleware())
+
+	router.GET("/metrics", gin.WrapH(deps.Metrics.Handler()))
 
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})

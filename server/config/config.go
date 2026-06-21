@@ -20,11 +20,19 @@ type Config struct {
 	S3        S3Config        `mapstructure:"s3"`
 	Upload    UploadConfig    `mapstructure:"upload"`
 	RateLimit RateLimitConfig `mapstructure:"ratelimit"`
+	Sentry    SentryConfig    `mapstructure:"sentry"`
 }
 
 type RateLimitConfig struct {
 	AuthRequests int           `mapstructure:"auth_requests"`
 	AuthWindow   time.Duration `mapstructure:"auth_window"`
+}
+
+type SentryConfig struct {
+	DSN         string  `mapstructure:"dsn"`
+	Environment string  `mapstructure:"environment"`
+	Release     string  `mapstructure:"release"`
+	SampleRate  float64 `mapstructure:"sample_rate"`
 }
 
 type S3Config struct {
@@ -115,6 +123,7 @@ func bindEnvs(v *viper.Viper) {
 		"s3.endpoint", "s3.region", "s3.access_key", "s3.secret_key", "s3.bucket", "s3.use_path_style",
 		"upload.max_file_size_bytes", "upload.presign_ttl",
 		"ratelimit.auth_requests", "ratelimit.auth_window",
+		"sentry.dsn", "sentry.environment", "sentry.release", "sentry.sample_rate",
 	}
 	for _, k := range keys {
 		_ = v.BindEnv(k)
@@ -139,6 +148,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("upload.presign_ttl", 15*time.Minute)
 	v.SetDefault("ratelimit.auth_requests", 10)
 	v.SetDefault("ratelimit.auth_window", time.Minute)
+	v.SetDefault("sentry.sample_rate", 0.0)
 }
 
 func (c *Config) validate() error {

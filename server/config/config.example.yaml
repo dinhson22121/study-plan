@@ -50,3 +50,10 @@ upload:
 ratelimit:
   auth_requests: 10 # max auth attempts per window per client IP
   auth_window: "1m"
+
+sentry:
+  dsn: "" # set EDU_SENTRY_DSN to enable error reporting; empty = disabled
+  environment: "production"
+  release: "" # e.g. the deployed git SHA
+  sample_rate: 0.1 # 0 disables tracing
+
