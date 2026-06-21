@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Study Coach Prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #3b5bff;
+      --primary-2: #7c5cff;
+      --surface: #f5f7fc;
+      --card: #ffffff;
+      --text: #181b34;
+      --text-secondary: #6b7186;
+      --text-muted: #9ca2b8;
+      --success: #15b981;
+      --warning: #f5871f;
+      --danger: #f0474b;
+      --quiz: #8b5cf6;
+      --shadow: 0 10px 28px -16px rgba(28, 38, 76, 0.2);
+      --radius-card: 20px;
+      --radius-button: 16px;
+      --phone-w: 390px;
+      --phone-h: 844px;
+      --gradient: linear-gradient(135deg, #3b5bff 0%, #7c5cff 100%);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at top left, rgba(59,91,255,.15), transparent 35%),
+        radial-gradient(circle at bottom right, rgba(124,92,255,.18), transparent 32%),
+        #edf2ff;
+      font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+      color: var(--text);
+      padding: 24px;
+    }
+
+    .phone {
+      width: var(--phone-w);
+      height: var(--phone-h);
+      background: var(--surface);
+      border-radius: 46px;
+      box-shadow: 0 30px 80px rgba(18, 26, 62, 0.22);
+      overflow: hidden;
+      position: relative;
+      border: 10px solid #121729;
+    }
+
+    .status-bar {
+      height: 44px;
+      padding: 16px 20px 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      position: relative;
+      z-index: 5;
+    }
+
+    .screen-container {
+      height: calc(100% - 44px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(18px);
+      transition: opacity .28s ease, transform .28s ease;
+      padding: 0 20px 92px;
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+
+    .screen::-webkit-scrollbar { display: none; }
+
+    .screen.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    .screen.hidden-nav {
+      padding-bottom: 24px;
+    }
+
+    .hero {
+      background: var(--gradient);
+      color: white;
+      border-radius: 28px;
+      padding: 24px 22px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero h1, .hero h2, .hero h3 { margin: 0; }
+    .hero p {
+      margin: 10px 0 0;
+      color: rgba(255,255,255,.86);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .section-title {
+      font-size: 22px;
+      font-weight: 800;
+      margin: 10px 0 8px;
+      letter-spacing: -.02em;
+    }
+
+    .subtle {
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius-card);
+      padding: 18px;
+      box-shadow: var(--shadow);
+      margin-top: 14px;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 30px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .badge.success { background: rgba(21,185,129,.12); color: #0f9c68; }
+    .badge.warning { background: rgba(245,135,31,.12); color: #d56d11; }
+    .badge.quiz { background: rgba(139,92,246,.12); color: #7a49ef; }
+    .badge.muted { background: rgba(156,162,184,.16); color: #737a91; }
+
+    .button, .ghost-button {
+      width: 100%;
+      min-height: 54px;
+      border-radius: var(--radius-button);
+      border: 0;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform .18s ease, opacity .18s ease, box-shadow .18s ease;
+    }
+
+    .button:active, .ghost-button:active {
+      transform: translateY(1px) scale(.995);
+    }
+
+    .button {
+      background: var(--gradient);
+      color: white;
+      box-shadow: 0 14px 24px -18px rgba(59, 91, 255, .95);
+    }
+
+    .ghost-button {
+      background: rgba(59, 91, 255, .08);
+      color: var(--primary);
+    }
+
+    .mini-button {
+      min-height: 44px;
+      border-radius: 14px;
+      border: 0;
+      background: rgba(59, 91, 255, .08);
+      color: var(--primary);
+      padding: 0 14px;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .button[disabled], .ghost-button[disabled] {
+      cursor: not-allowed;
+      opacity: .45;
+      box-shadow: none;
+    }
+
+    .stack { display: grid; gap: 12px; }
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 10px; }
+    .chip {
+      min-height: 44px;
+      border-radius: 999px;
+      border: 1px solid rgba(59,91,255,.12);
+      background: white;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: .2s ease;
+    }
+    .chip.active {
+      background: rgba(59,91,255,.12);
+      color: var(--primary);
+      border-color: rgba(59,91,255,.32);
+    }
+
+    .progress-shell {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: #e7ebf7;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--gradient);
+    }
+
+    .metric {
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -.03em;
+    }
+
+    .list {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .task {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 18px;
+      background: white;
+      box-shadow: var(--shadow);
+    }
+
+    .task-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      margin-top: 3px;
+      flex: 0 0 auto;
+    }
+    .task-dot.success { background: var(--success); }
+    .task-dot.warning { background: var(--warning); }
+    .task-dot.quiz { background: var(--quiz); }
+
+    .task h4, .milestone h4 {
+      margin: 0 0 4px;
+      font-size: 15px;
+    }
+    .task p, .milestone p, .lesson-block p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+
+    .nav {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      display: flex;
+      gap: 8px;
+      padding: 10px;
+      background: rgba(255,255,255,.94);
+      backdrop-filter: blur(18px);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      z-index: 6;
+    }
+
+    .nav button {
+      flex: 1;
+      min-height: 48px;
+      border: 0;
+      background: transparent;
+      border-radius: 16px;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .nav button.active {
+      background: rgba(59,91,255,.1);
+      color: var(--primary);
+    }
+
+    .icon-btn {
+      width: 44px;
+      height: 44px;
+      border: 1px solid rgba(59,91,255,.14);
+      border-radius: 16px;
+      background: rgba(59,91,255,.10);
+      color: var(--primary);
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 8px;
+    }
+
+    .tiny {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .bar-chart {
+      display: flex;
+      align-items: end;
+      gap: 10px;
+      height: 120px;
+      margin-top: 16px;
+    }
+
+    .bar {
+      flex: 1;
+      border-radius: 14px 14px 8px 8px;
+      background: linear-gradient(180deg, rgba(59,91,255,.88), rgba(124,92,255,.72));
+      position: relative;
+    }
+
+    .bar span {
+      position: absolute;
+      top: -24px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+
+    .bar-labels {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .milestone {
+      position: relative;
+      padding-left: 24px;
+    }
+
+    .milestone::before {
+      content: "";
+      position: absolute;
+      left: 5px;
+      top: 8px;
+      bottom: -18px;
+      width: 2px;
+      background: rgba(59,91,255,.18);
+    }
+
+    .milestone:last-child::before { display: none; }
+
+    .milestone-node {
+      position: absolute;
+      left: 0;
+      top: 2px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--primary);
+      box-shadow: 0 0 0 6px rgba(59,91,255,.1);
+    }
+
+    .quiz-option {
+      width: 100%;
+      text-align: left;
+      min-height: 52px;
+      border-radius: 16px;
+      border: 1px solid rgba(24,27,52,.08);
+      background: white;
+      padding: 0 16px;
+      font: inherit;
+      font-size: 14px;
+      color: var(--text);
+      cursor: pointer;
+      transition: .18s ease;
+    }
+
+    .quiz-option.selected {
+      border-color: rgba(59,91,255,.45);
+      background: rgba(59,91,255,.08);
+    }
+
+    .toggle {
+      width: 54px;
+      height: 32px;
+      border-radius: 999px;
+      background: #d9dff0;
+      position: relative;
+      cursor: pointer;
+      transition: .2s ease;
+      flex: 0 0 auto;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    .toggle:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+    .toggle::after {
+      content: "";
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: white;
+      box-shadow: 0 4px 12px rgba(0,0,0,.12);
+      transition: .2s ease;
+    }
+    .toggle.active {
+      background: var(--success);
+    }
+    .toggle.active::after {
+      transform: translateX(22px);
+    }
+
+    .notification {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .notification-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-top: 6px;
+      flex: 0 0 auto;
+      background: var(--primary);
+    }
+
+    .empty, .error {
+      margin-top: 14px;
+      padding: 16px;
+      border-radius: 18px;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .empty { background: rgba(59,91,255,.08); color: var(--primary); }
+    .error { background: rgba(240,71,75,.08); color: #c93d41; }
+
+    .ring {
+      width: 86px;
+      height: 86px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background:
+        conic-gradient(#3b5bff 0 68%, rgba(59,91,255,.12) 68% 100%);
+    }
+    .ring::before {
+      content: "";
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      background: white;
+      position: absolute;
+    }
+    .ring-value {
+      position: relative;
+      z-index: 1;
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .input {
+      width: 100%;
+      min-height: 52px;
+      border-radius: 16px;
+      border: 1px solid rgba(24,27,52,.1);
+      background: #fff;
+      padding: 0 16px;
+      font: inherit;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .input:focus {
+      outline: 3px solid rgba(59,91,255,.14);
+      border-color: rgba(59,91,255,.35);
+    }
+
+    .helper {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .state-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      border-radius: 18px;
+      background: white;
+      box-shadow: var(--shadow);
+      margin-top: 14px;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2.5px solid rgba(59,91,255,.18);
+      border-top-color: var(--primary);
+      animation: spin .8s linear infinite;
+      flex: 0 0 auto;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Splash entrance: gentle staggered fade-up, no bounce */
+    @keyframes splashRise {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .screen[data-screen="splash"].active .hero > * {
+      animation: splashRise .42s cubic-bezier(.16, 1, .3, 1) both;
+    }
+    .screen[data-screen="splash"].active .hero > *:nth-child(1) { animation-delay: .04s; }
+    .screen[data-screen="splash"].active .hero > *:nth-child(2) { animation-delay: .12s; }
+    .screen[data-screen="splash"].active .hero > *:nth-child(3) { animation-delay: .20s; }
+    .screen[data-screen="splash"].active .hero > *:nth-child(4) { animation-delay: .28s; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .screen { transition: none; }
+      .screen[data-screen="splash"].active .hero > * { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="phone">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span>5G 92%</span>
+    </div>
+
+    <div class="screen-container">
+      <section class="screen active hidden-nav" data-screen="splash">
+        <div class="hero" style="margin-top: 110px; text-align:center;">
+          <div class="badge muted" style="margin:0 auto 18px; width:max-content; background:rgba(255,255,255,.18); color:white;">AI STUDY COACH</div>
+          <h1 style="font-size:32px; line-height:1.15;">Học đúng trọng tâm, tiến bộ mỗi ngày</h1>
+          <p>Tạo lộ trình cá nhân hóa, ôn đúng chuyên đề yếu và giữ nhịp học đều đặn trước kỳ thi.</p>
+          <div style="margin-top:26px;">
+            <button class="button" data-go="login">Bắt đầu</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen hidden-nav" data-screen="login">
+        <div style="padding-top: 78px;">
+          <div class="section-title">Đăng nhập</div>
+          <p class="subtle">Tiếp tục hành trình học của Minh Anh với lộ trình đã cá nhân hóa. Prototype có sẵn tài khoản demo để đi qua flow chính.</p>
+
+          <div class="card stack">
+            <div class="helper">Demo: <strong>minhanh12@example.com</strong> · <strong>hocgioi2025</strong></div>
+            <div class="field">
+              <div class="tiny" style="margin-bottom:8px;">Email</div>
+              <input id="login-email" class="input" type="email" value="minhanh12@example.com" autocomplete="username">
+            </div>
+            <div class="field">
+              <div class="tiny" style="margin-bottom:8px;">Mật khẩu</div>
+              <input id="login-password" class="input" type="password" value="hocgioi2025" autocomplete="current-password">
+            </div>
+            <div class="error hidden" id="login-error">Email hoặc mật khẩu demo chưa đúng. Hãy dùng đúng tài khoản demo để đi tiếp trong prototype.</div>
+            <button class="button" id="login-submit">Đăng nhập</button>
+            <button class="ghost-button" data-go="splash">Quay lại giới thiệu</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen hidden-nav" data-screen="onboarding">
+        <div style="padding-top: 28px;">
+          <div class="tiny">Bước 1/3</div>
+          <div class="progress-shell" style="margin-top:8px;"><div class="progress-fill" style="width:34%;"></div></div>
+          <div class="section-title">Bạn muốn cải thiện điều gì nhất?</div>
+          <p class="subtle">Chọn một mục tiêu chính để app ưu tiên sắp xếp nội dung tuần này.</p>
+
+          <div class="chips" data-chip-group="goal" style="margin-top:18px;">
+            <button class="chip active">Tăng điểm Toán</button>
+            <button class="chip">Ôn thi tốt nghiệp</button>
+            <button class="chip">Giữ chuỗi học đều</button>
+            <button class="chip">Củng cố tiếng Anh</button>
+          </div>
+
+          <div class="card">
+            <h3 style="margin:0 0 10px;">Thời lượng học mỗi ngày</h3>
+            <div class="chips" data-chip-group="duration">
+              <button class="chip">20 phút</button>
+              <button class="chip active">40 phút</button>
+              <button class="chip">60 phút</button>
+            </div>
+          </div>
+
+          <button class="button" style="margin-top:18px;" data-go="diagnostic">Tiếp tục</button>
+        </div>
+      </section>
+
+      <section class="screen hidden-nav" data-screen="diagnostic">
+        <div style="padding-top: 28px;">
+          <div class="tiny">Bước 2/3</div>
+          <div class="progress-shell" style="margin-top:8px;"><div class="progress-fill" style="width:68%;"></div></div>
+          <div class="section-title">Chẩn đoán đầu vào</div>
+          <p class="subtle">3 quiz ngắn để AI Study Coach nhận diện phần bạn đang yếu nhất và tạo lộ trình phù hợp.</p>
+
+          <div class="list">
+            <div class="task">
+              <div class="task-dot success"></div>
+              <div>
+                <h4>Toán — Logarit & đổi cơ số</h4>
+                <p>5 câu · 6 phút · tập trung vào phần nền tảng đang kéo điểm trung bình xuống.</p>
+              </div>
+            </div>
+            <div class="task">
+              <div class="task-dot quiz"></div>
+              <div>
+                <h4>Tiếng Anh — Mệnh đề quan hệ</h4>
+                <p>4 câu · 4 phút · kiểm tra chính xác phần thường sai trong bài đọc hiểu.</p>
+              </div>
+            </div>
+            <div class="task">
+              <div class="task-dot warning"></div>
+              <div>
+                <h4>Vật Lý — Điện xoay chiều</h4>
+                <p>4 câu · 5 phút · đo tốc độ phản xạ với các công thức cơ bản.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="state-card hidden" id="diagnostic-loading">
+            <div class="spinner"></div>
+            <div>
+              <strong style="display:block; font-size:14px;">AI đang phân tích năng lực đầu vào...</strong>
+              <span class="helper">Đang tạo lộ trình tuần đầu tiên cho Minh Anh.</span>
+            </div>
+          </div>
+
+          <button class="button" style="margin-top:20px;" id="diagnostic-start">Bắt đầu chẩn đoán</button>
+        </div>
+      </section>
+
+      <section class="screen hidden-nav" data-screen="diagnostic-result">
+        <div style="padding-top: 28px;">
+          <div class="tiny">Bước 3/3</div>
+          <div class="progress-shell" style="margin-top:8px;"><div class="progress-fill" style="width:100%;"></div></div>
+          <div class="section-title">Kết quả chẩn đoán</div>
+          <p class="subtle">AI đã tạo lộ trình tuần đầu tiên cho Minh Anh dựa trên 3 điểm yếu chính.</p>
+
+          <div class="card stack">
+            <div class="row">
+              <div>
+                <h3 style="margin:0;">Toán</h3>
+                <p class="subtle">Cần củng cố Logarit cơ bản và đổi cơ số.</p>
+              </div>
+              <span class="badge warning">Ưu tiên cao</span>
+            </div>
+            <div class="row">
+              <div>
+                <h3 style="margin:0;">Tiếng Anh</h3>
+                <p class="subtle">Đọc hiểu ổn, nhưng mệnh đề quan hệ còn thiếu chắc.</p>
+              </div>
+              <span class="badge muted">Ưu tiên vừa</span>
+            </div>
+            <div class="row">
+              <div>
+                <h3 style="margin:0;">Vật Lý</h3>
+                <p class="subtle">Điện xoay chiều cần luyện thêm bài cơ bản.</p>
+              </div>
+              <span class="badge muted">Ưu tiên vừa</span>
+            </div>
+          </div>
+
+          <button class="button" style="margin-top:18px;" data-go="dashboard">Vào dashboard</button>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="dashboard">
+        <div class="top-actions">
+          <div>
+            <div class="tiny">Chào buổi tối, Minh Anh</div>
+            <div class="section-title" style="margin-top:4px;">Sẵn sàng cho 40 phút học hôm nay?</div>
+          </div>
+          <button class="icon-btn" data-go="notifications">🔔</button>
+        </div>
+
+        <div class="hero" style="margin-top:10px;">
+          <div class="row">
+            <div>
+              <div class="tiny" style="color:rgba(255,255,255,.78);">Chuỗi học hiện tại</div>
+              <div class="metric" style="color:white;">12 ngày</div>
+            </div>
+            <div class="badge success" style="background:rgba(255,255,255,.18); color:white;">68% tuần này</div>
+          </div>
+          <p id="dashboard-focus">Tiếp tục chuyên đề Logarit để giữ streak và tăng điểm kiểm tra giữa kỳ.</p>
+        </div>
+
+        <div class="card">
+          <div class="row">
+            <div>
+              <h3 style="margin:0;">Tiến độ tuần</h3>
+              <p class="subtle">4 / 6 nhiệm vụ đã hoàn thành</p>
+            </div>
+            <div class="ring">
+              <div class="ring-value">68%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="row">
+            <h3 style="margin:0;">Nhiệm vụ hôm nay</h3>
+            <span class="badge warning">3 việc</span>
+          </div>
+          <div class="list">
+            <div class="task">
+              <div class="task-dot success"></div>
+              <div>
+                <h4>Logarit cơ bản — 15 phút</h4>
+                <p>Ôn quy tắc đổi cơ số và 2 ví dụ mẫu.</p>
+              </div>
+            </div>
+            <div class="task">
+              <div class="task-dot quiz"></div>
+              <div>
+                <h4>Quiz tiếng Anh — 5 câu</h4>
+                <p>Rà lại mệnh đề quan hệ thường sai trong bài đọc.</p>
+              </div>
+            </div>
+            <div class="task">
+              <div class="task-dot warning"></div>
+              <div>
+                <h4>Điện xoay chiều — 10 phút</h4>
+                <p>Xem lại công thức nền trước khi làm bài tập.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="row">
+            <h3 style="margin:0;">Quick actions</h3>
+            <span class="tiny">Học ngay</span>
+          </div>
+          <div class="stack" style="margin-top:12px;">
+            <button class="button" data-go="lesson">Tiếp tục bài học Logarit</button>
+            <button class="ghost-button" data-go="roadmap">Xem lộ trình học</button>
+            <button class="ghost-button" data-go="quiz">Làm quiz nhanh</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="roadmap">
+        <div class="top-actions">
+          <div>
+            <div class="tiny">Lộ trình tuần 1</div>
+            <div class="section-title" style="margin-top:4px;">Củng cố nền tảng trước khi tăng tốc</div>
+          </div>
+        </div>
+
+        <div class="card stack">
+          <div class="milestone">
+            <div class="milestone-node"></div>
+            <h4>Củng cố Logarit</h4>
+            <p>Hoàn thành 3 bài học nền tảng và 2 quiz ngắn trước thứ Tư.</p>
+            <span class="badge success" style="margin-top:10px;">Đang làm</span>
+          </div>
+          <div class="milestone">
+            <div class="milestone-node" style="background: var(--warning); box-shadow: 0 0 0 6px rgba(245,135,31,.12);"></div>
+            <h4>Luyện chuyên đề tiếng Anh</h4>
+            <p>Tập trung mệnh đề quan hệ và câu nối trong bài đọc.</p>
+            <span class="badge warning" style="margin-top:10px;">Bắt đầu sau</span>
+          </div>
+          <div class="milestone">
+            <div class="milestone-node" style="background: #d6dbef; box-shadow:none;"></div>
+            <h4>Tăng tốc mini test</h4>
+            <p>Mini test 20 phút để đo tiến bộ cuối tuần.</p>
+            <span class="badge muted" style="margin-top:10px;">Đã khóa</span>
+          </div>
+        </div>
+
+        <button class="button" style="margin-top:18px;" data-go="lesson">Mở bài học hiện tại</button>
+      </section>
+
+      <section class="screen" data-screen="lesson">
+        <div class="top-actions">
+          <div>
+            <div class="tiny">Bài học ưu tiên</div>
+            <div class="section-title" style="margin-top:4px;">Logarit cơ bản — đổi cơ số và ứng dụng</div>
+          </div>
+        </div>
+
+        <div class="card lesson-block">
+          <span class="badge success">15 phút</span>
+          <h3 style="margin:14px 0 8px;">3 ý chính cần nhớ</h3>
+          <div class="stack subtle">
+            <p>1. Logarit là phép toán ngược của lũy thừa và giúp rút gọn biểu thức mũ.</p>
+            <p>2. Công thức đổi cơ số giúp chuyển mọi logarit về cùng một nền để so sánh nhanh.</p>
+            <p>3. Nên nhìn dạng biểu thức trước khi tính — nhiều bài chỉ cần biến đổi, không cần bấm máy.</p>
+          </div>
+        </div>
+
+        <div class="card lesson-block">
+          <h3 style="margin:0 0 8px;">Ví dụ nhanh</h3>
+          <p><strong>log2(8)</strong> = 3 vì <strong>2³ = 8</strong>.</p>
+          <p style="margin-top:10px;">Nếu gặp <strong>loga(b)</strong> với dạng khó, có thể đổi về:
+            <strong> logc(b) / logc(a)</strong>.</p>
+        </div>
+
+        <div class="card lesson-block">
+          <h3 style="margin:0 0 8px;">Hoàn thành bài học</h3>
+          <p>Bạn đã xem 82% nội dung. Làm quiz 3 câu để khóa kiến thức vừa học.</p>
+        </div>
+
+        <button class="button" style="margin-top:18px;" data-go="quiz">Làm quiz kiểm tra</button>
+      </section>
+
+      <section class="screen" data-screen="quiz">
+        <div class="top-actions">
+          <div>
+            <div class="tiny">Quiz nhanh · 3 câu</div>
+            <div class="section-title" style="margin-top:4px;">Kiểm tra sau bài học</div>
+          </div>
+          <span class="badge quiz" id="quiz-counter">Câu 1/3</span>
+        </div>
+
+        <div class="card">
+          <div class="tiny" style="margin-bottom:8px;">Đã chọn <span id="quiz-selected-count">0</span>/3 câu</div>
+          <div class="progress-shell"><div class="progress-fill" id="quiz-progress" style="width:33%;"></div></div>
+        </div>
+
+        <div class="card">
+          <h3 id="quiz-question" style="margin:0 0 14px;">Nếu log2(8) bằng bao nhiêu?</h3>
+          <div class="stack" id="quiz-options"></div>
+        </div>
+
+        <div class="stack" style="margin-top:14px;">
+          <button class="button" id="quiz-next" disabled>Câu tiếp theo</button>
+          <button class="ghost-button" data-go="lesson">Quay lại bài học</button>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="quiz-result">
+        <div style="padding-top: 24px;">
+          <div class="hero">
+            <div class="tiny" style="color:rgba(255,255,255,.8);">Kết quả quiz</div>
+            <div class="metric" style="color:white;" id="result-score">2/3 đúng</div>
+            <p id="result-summary">Bạn nắm chắc phần Logarit cơ bản, nhưng vẫn cần xem lại câu tiếng Anh.</p>
+          </div>
+
+          <div class="card stack">
+            <div class="row">
+              <h3 style="margin:0;">Nhận xét nhanh</h3>
+              <span class="badge warning">Cần ôn 1 ý</span>
+            </div>
+            <p class="subtle">Bạn phản xạ tốt ở Toán và Vật Lý. Với tiếng Anh, cần nhớ rằng <strong>who</strong> dùng cho người.</p>
+          </div>
+
+          <div class="card">
+            <h3 style="margin:0 0 8px;">Giải thích câu sai</h3>
+            <p class="subtle">Ở câu 2, đáp án đúng là <strong>who dùng cho người</strong>. Đây là lỗi phổ biến khi làm bài đọc có nhiều danh từ thay thế.</p>
+          </div>
+
+          <div class="stack" style="margin-top:18px;">
+            <button class="button" data-go="dashboard">Về dashboard</button>
+            <button class="ghost-button" data-go="roadmap">Xem lộ trình tiếp theo</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="progress">
+        <div class="top-actions">
+          <div>
+            <div class="tiny">Tiến độ tuần này</div>
+            <div class="section-title" style="margin-top:4px;">Bạn đang đi đúng nhịp</div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="mini-button" id="progress-show-data">Có dữ liệu</button>
+            <button class="mini-button" id="progress-show-empty">Empty</button>
+          </div>
+        </div>
+
+        <div id="progress-content">
+          <div class="card">
+            <div class="row">
+              <div>
+                <h3 style="margin:0;">Tổng giờ học</h3>
+                <p class="subtle">3 giờ 40 phút trong 5 ngày gần nhất</p>
+              </div>
+              <div class="metric">68%</div>
+            </div>
+
+            <div class="bar-chart">
+              <div class="bar" style="height:58%;"><span>35m</span></div>
+              <div class="bar" style="height:78%;"><span>48m</span></div>
+              <div class="bar" style="height:52%;"><span>31m</span></div>
+              <div class="bar" style="height:90%;"><span>56m</span></div>
+              <div class="bar" style="height:70%;"><span>43m</span></div>
+            </div>
+            <div class="bar-labels">
+              <span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span>
+            </div>
+          </div>
+
+          <div class="card stack">
+            <div class="row">
+              <h3 style="margin:0;">Chỉ số nổi bật</h3>
+              <span class="badge success">Tiến bộ</span>
+            </div>
+            <div class="row">
+              <span class="subtle">Môn tiến bộ nhanh nhất</span>
+              <strong>Toán</strong>
+            </div>
+            <div class="row">
+              <span class="subtle">Chuỗi học liên tiếp</span>
+              <strong>12 ngày</strong>
+            </div>
+            <div class="row">
+              <span class="subtle">Tỷ lệ hoàn thành task</span>
+              <strong>4/6</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty hidden" id="progress-empty">
+          Chưa đủ dữ liệu cho biểu đồ. Hãy hoàn thành ít nhất 2 buổi học để xem tiến độ tuần.
+        </div>
+      </section>
+
+      <section class="screen" data-screen="profile">
+        <div class="top-actions">
+          <div>
+            <div class="tiny">Cá nhân</div>
+            <div class="section-title" style="margin-top:4px;">Minh Anh · Mục tiêu tăng điểm Toán</div>
+          </div>
+        </div>
+
+        <div class="card stack">
+          <div class="row">
+            <div>
+              <h3 style="margin:0;">Mục tiêu hiện tại</h3>
+              <p class="subtle">Tăng điểm Toán lên 8.5 trước kỳ kiểm tra cuối kỳ.</p>
+            </div>
+            <span class="badge success">Đang theo dõi</span>
+          </div>
+          <div class="row">
+            <div>
+              <h3 style="margin:0;">Nhắc học lúc</h3>
+              <p class="subtle">19:30 mỗi tối</p>
+            </div>
+            <button type="button" class="toggle active" data-toggle="reminder" role="switch" aria-checked="true" aria-label="Bật nhắc học mỗi tối"></button>
+          </div>
+          <div class="row">
+            <div>
+              <h3 style="margin:0;">Thông báo quiz tuần</h3>
+              <p class="subtle">Nhắc vào tối Chủ Nhật nếu chưa hoàn thành.</p>
+            </div>
+            <button type="button" class="toggle active" data-toggle="quiz-reminder" role="switch" aria-checked="true" aria-label="Bật thông báo quiz tuần"></button>
+          </div>
+          <div class="row">
+            <div>
+              <h3 style="margin:0;">Gợi ý từ AI</h3>
+              <p class="subtle">Ưu tiên đề xuất bài học theo chuyên đề bạn đang yếu.</p>
+            </div>
+            <button type="button" class="toggle active" data-toggle="ai-suggestion" role="switch" aria-checked="true" aria-label="Bật gợi ý từ AI"></button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin:0 0 8px;">Tài khoản</h3>
+          <p class="subtle">Email: minhanh12@example.com</p>
+          <p class="subtle">Lớp: 12A1 · Mục tiêu thi khối A01</p>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="notifications">
+        <div class="top-actions">
+          <div>
+            <div class="tiny">Thông báo</div>
+            <div class="section-title" style="margin-top:4px;">Những gì bạn cần chú ý hôm nay</div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="mini-button" id="notifications-reload">Tải lại</button>
+            <button class="mini-button" id="notifications-show-error">Giả lập lỗi</button>
+          </div>
+        </div>
+
+        <div class="state-card hidden" id="notifications-loading">
+          <div class="spinner"></div>
+          <div>
+            <strong style="display:block; font-size:14px;">Đang tải thông báo mới...</strong>
+            <span class="helper">Đồng bộ nhắc học và quiz tuần.</span>
+          </div>
+        </div>
+
+        <div class="list" id="notifications-list">
+          <div class="card notification">
+            <div class="notification-indicator"></div>
+            <div>
+              <h4 style="margin:0 0 6px;">Nhắc học tối nay lúc 19:30</h4>
+              <p>Buổi học hôm nay tập trung chuyên đề Logarit cơ bản để giữ chuỗi 12 ngày.</p>
+            </div>
+          </div>
+          <div class="card notification">
+            <div class="notification-indicator" style="background: var(--success);"></div>
+            <div>
+              <h4 style="margin:0 0 6px;">Bạn đã hoàn thành milestone đầu tiên</h4>
+              <p>3 bài học Toán nền tảng đã xong. Tuần tới chuyển sang luyện chuyên đề.</p>
+            </div>
+          </div>
+          <div class="card notification">
+            <div class="notification-indicator" style="background: var(--quiz);"></div>
+            <div>
+              <h4 style="margin:0 0 6px;">Quiz tuần mới đã sẵn sàng</h4>
+              <p>5 câu tiếng Anh về mệnh đề quan hệ đang chờ bạn hoàn thành trước Chủ Nhật.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="error hidden" id="notification-error">
+          Không tải được thông báo mới. Hãy thử lại sau ít phút.
+        </div>
+      </section>
+    </div>
+
+    <nav class="nav" id="bottom-nav">
+      <button data-go="dashboard" data-nav="dashboard" class="active">Trang chủ</button>
+      <button data-go="roadmap" data-nav="roadmap">Lộ trình</button>
+      <button data-go="quiz" data-nav="quiz">Quiz</button>
+      <button data-go="progress" data-nav="progress">Tiến độ</button>
+      <button data-go="profile" data-nav="profile">Cá nhân</button>
+    </nav>
+  </div>
+
+  <script>
+    const navScreens = new Set(["dashboard", "roadmap", "quiz", "progress", "profile"]);
+    const screens = document.querySelectorAll(".screen");
+    const navButtons = document.querySelectorAll("[data-nav]");
+    const bottomNav = document.getElementById("bottom-nav");
+    const loginEmail = document.getElementById("login-email");
+    const loginPassword = document.getElementById("login-password");
+    const loginError = document.getElementById("login-error");
+    const loginSubmit = document.getElementById("login-submit");
+    const diagnosticLoading = document.getElementById("diagnostic-loading");
+    const diagnosticStart = document.getElementById("diagnostic-start");
+    const progressContent = document.getElementById("progress-content");
+    const progressEmpty = document.getElementById("progress-empty");
+    const notificationsList = document.getElementById("notifications-list");
+    const notificationsLoading = document.getElementById("notifications-loading");
+    const notificationsError = document.getElementById("notification-error");
+
+    let currentScreen = "splash";
+    let selectedGoal = "Tăng điểm Toán";
+    let selectedDuration = "40 phút";
+    let quizIndex = 0;
+    let quizState = {};
+    let notificationsPrimed = false;
+    const quizQuestions = [
+      {
+        question: "Nếu log2(8) bằng bao nhiêu?",
+        options: ["2", "3", "4", "8"],
+        correct: 1,
+      },
+      {
+        question: "Trong tiếng Anh, đại từ quan hệ nào dùng cho người?",
+        options: ["which", "who", "where", "when"],
+        correct: 1,
+      },
+      {
+        question: "Trong dòng điện xoay chiều, đại lượng nào thay đổi tuần hoàn theo thời gian?",
+        options: ["Chỉ điện áp", "Chỉ cường độ dòng điện", "Cả điện áp và cường độ", "Không có đại lượng nào"],
+        correct: 2,
+      }
+    ];
+
+    function updateDashboardCopy() {
+      const dashboardTitle = document.querySelector('[data-screen="dashboard"] .section-title');
+      const dashboardFocus = document.getElementById("dashboard-focus");
+      if (dashboardTitle) {
+        dashboardTitle.textContent = `Sẵn sàng cho ${selectedDuration.toLowerCase()} học hôm nay?`;
+      }
+      if (dashboardFocus) {
+        dashboardFocus.textContent = `Mục tiêu hiện tại là ${selectedGoal.toLowerCase()}. Bắt đầu bằng đúng chuyên đề yếu nhất để giữ streak và tăng điểm kiểm tra giữa kỳ.`;
+      }
+    }
+
+    function resetQuiz() {
+      quizIndex = 0;
+      quizState = {};
+      renderQuiz();
+    }
+
+    function showProgressEmpty(showEmpty) {
+      progressContent.classList.toggle("hidden", showEmpty);
+      progressEmpty.classList.toggle("hidden", !showEmpty);
+    }
+
+    function showNotificationsError(showError) {
+      notificationsList.classList.toggle("hidden", showError);
+      notificationsError.classList.toggle("hidden", !showError);
+    }
+
+    function loadNotifications(simulateError = false) {
+      notificationsLoading.classList.remove("hidden");
+      notificationsList.classList.add("hidden");
+      notificationsError.classList.add("hidden");
+
+      window.clearTimeout(loadNotifications.timer);
+      loadNotifications.timer = window.setTimeout(() => {
+        notificationsLoading.classList.add("hidden");
+        showNotificationsError(simulateError);
+      }, 700);
+    }
+    loadNotifications.timer = 0;
+
+    function goTo(screen) {
+      currentScreen = screen;
+      screens.forEach((section) => {
+        section.classList.toggle("active", section.dataset.screen === screen);
+      });
+
+      navButtons.forEach((button) => {
+        button.classList.toggle("active", button.dataset.nav === screen);
+      });
+
+      if (navScreens.has(screen)) {
+        bottomNav.classList.remove("hidden");
+      } else {
+        bottomNav.classList.add("hidden");
+      }
+
+      if (screen === "quiz") {
+        renderQuiz();
+      }
+      if (screen === "quiz-result") {
+        renderQuizResult();
+      }
+      if (screen === "dashboard") {
+        updateDashboardCopy();
+      }
+      if (screen === "notifications" && !notificationsPrimed) {
+        notificationsPrimed = true;
+        loadNotifications(false);
+      }
+    }
+
+    function renderQuiz() {
+      const q = quizQuestions[quizIndex];
+      document.getElementById("quiz-counter").textContent = `Câu ${quizIndex + 1}/${quizQuestions.length}`;
+      document.getElementById("quiz-progress").style.width = `${((quizIndex + 1) / quizQuestions.length) * 100}%`;
+      document.getElementById("quiz-question").textContent = q.question;
+
+      const chosenCount = Object.keys(quizState).length;
+      document.getElementById("quiz-selected-count").textContent = chosenCount;
+
+      const options = document.getElementById("quiz-options");
+      options.innerHTML = "";
+
+      q.options.forEach((option, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "quiz-option" + (quizState[quizIndex] === index ? " selected" : "");
+        button.textContent = `${String.fromCharCode(65 + index)}. ${option}`;
+        button.dataset.quizOption = String(index);
+        options.appendChild(button);
+      });
+
+      const nextButton = document.getElementById("quiz-next");
+      nextButton.disabled = quizState[quizIndex] === undefined;
+      nextButton.textContent = quizIndex === quizQuestions.length - 1 ? "Nộp bài" : "Câu tiếp theo";
+    }
+
+    function renderQuizResult() {
+      const score = quizQuestions.reduce((sum, q, index) => sum + (quizState[index] === q.correct ? 1 : 0), 0);
+      const summary =
+        score === 3
+          ? "Xuất sắc! Bạn đã nắm chắc cả ba nội dung trọng tâm."
+          : score === 2
+            ? "Bạn nắm tốt phần Toán và Vật Lý, nhưng vẫn cần xem lại câu tiếng Anh."
+            : "Bạn cần ôn lại bài học trước khi chuyển sang chuyên đề tiếp theo.";
+      document.getElementById("result-score").textContent = `${score}/${quizQuestions.length} đúng`;
+      document.getElementById("result-summary").textContent = summary;
+    }
+
+    document.addEventListener("click", (event) => {
+      const target = event.target.closest(
+        "[data-go], [data-chip-group] .chip, [data-toggle], [data-quiz-option], #quiz-next, #login-submit, #diagnostic-start, #progress-show-data, #progress-show-empty, #notifications-reload, #notifications-show-error"
+      );
+      if (!target) return;
+
+      if (target.dataset.go) {
+        if (target.dataset.go === "quiz" && target.id !== "quiz-next") {
+          resetQuiz();
+        }
+        goTo(target.dataset.go);
+        return;
+      }
+
+      if (target.matches(".chip")) {
+        const group = target.parentElement;
+        if (!group) return;
+        group.querySelectorAll(".chip").forEach((chip) => chip.classList.remove("active"));
+        target.classList.add("active");
+        if (group.dataset.chipGroup === "goal") selectedGoal = target.textContent.trim();
+        if (group.dataset.chipGroup === "duration") selectedDuration = target.textContent.trim();
+        updateDashboardCopy();
+        return;
+      }
+
+      if (target.dataset.toggle) {
+        const on = target.classList.toggle("active");
+        target.setAttribute("aria-checked", String(on));
+        return;
+      }
+
+      if (target.dataset.quizOption !== undefined) {
+        quizState[quizIndex] = Number(target.dataset.quizOption);
+        renderQuiz();
+        return;
+      }
+
+      if (target.id === "quiz-next") {
+        if (quizState[quizIndex] === undefined) return;
+        if (quizIndex < quizQuestions.length - 1) {
+          quizIndex += 1;
+          renderQuiz();
+        } else {
+          goTo("quiz-result");
+        }
+        return;
+      }
+
+      if (target.id === "login-submit") {
+        const email = loginEmail.value.trim().toLowerCase();
+        const password = loginPassword.value.trim();
+        loginError.classList.add("hidden");
+
+        if (!email || !password) {
+          loginError.textContent = "Hãy nhập đầy đủ email và mật khẩu.";
+          loginError.classList.remove("hidden");
+          return;
+        }
+        if (email !== "minhanh12@example.com" || password !== "hocgioi2025") {
+          loginError.textContent = "Email hoặc mật khẩu demo chưa đúng. Hãy dùng đúng tài khoản demo để đi tiếp trong prototype.";
+          loginError.classList.remove("hidden");
+          return;
+        }
+
+        loginSubmit.disabled = true;
+        loginSubmit.textContent = "Đang đăng nhập...";
+        window.setTimeout(() => {
+          loginSubmit.disabled = false;
+          loginSubmit.textContent = "Đăng nhập";
+          goTo("onboarding");
+        }, 650);
+        return;
+      }
+
+      if (target.id === "diagnostic-start") {
+        diagnosticLoading.classList.remove("hidden");
+        diagnosticStart.disabled = true;
+        diagnosticStart.textContent = "Đang phân tích...";
+        window.setTimeout(() => {
+          diagnosticLoading.classList.add("hidden");
+          diagnosticStart.disabled = false;
+          diagnosticStart.textContent = "Bắt đầu chẩn đoán";
+          goTo("diagnostic-result");
+        }, 900);
+        return;
+      }
+
+      if (target.id === "progress-show-empty") {
+        showProgressEmpty(true);
+        return;
+      }
+
+      if (target.id === "progress-show-data") {
+        showProgressEmpty(false);
+        return;
+      }
+
+      if (target.id === "notifications-show-error") {
+        loadNotifications(true);
+        return;
+      }
+
+      if (target.id === "notifications-reload") {
+        loadNotifications(false);
+      }
+    });
+
+    updateDashboardCopy();
+    showProgressEmpty(false);
+    showNotificationsError(false);
+    goTo("splash");
+  </script>
+</body>
+</html>
