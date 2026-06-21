@@ -23,8 +23,9 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          # Keep in sync with server/go.mod.
-          go-version: "1.25.8"
+          # Latest 1.25 patch (>= go.mod's 1.25.8). Patches <1.25.9 panic in
+          # go/types over generics during govulncheck (ForEachElement TypeParam).
+          go-version: "1.25.x"
           cache-dependency-path: server/go.sum
 
       - name: Build
