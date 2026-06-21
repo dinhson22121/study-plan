@@ -5,8 +5,12 @@
 
 # Shared app configuration. Service hostnames (postgres/redis/kafka) are used for
 # in-network connections; Kafka uses its internal listener on :29092.
+# NOTE: this bundled stack uses a non-TLS internal Postgres, so EDU_ENV must NOT
+# be "production" (production mode enforces sslmode=require + a strong JWT secret
+# and would refuse to boot here). Real production uses deploy/docker-compose.prod.yml
+# with managed RDS (sslmode=require) and injected secrets.
 x-app-env: &app-env
-  EDU_ENV: "production"
+  EDU_ENV: "development"
   EDU_PORT: ":8080"
   EDU_TIMEZONE: "Asia/Ho_Chi_Minh"
   EDU_POSTGRES_URL: "postgres://eduapp:secret@postgres:5432/eduapp?sslmode=disable"
