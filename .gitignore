@@ -9,3 +9,9 @@
 # Coverage / build output
 coverage.out
 *.out
+
+# TLS certs / keys — never commit (keep the dir via .gitkeep)
+deploy/nginx/certs/*
+!deploy/nginx/certs/.gitkeep
+*.pem
+*.key
