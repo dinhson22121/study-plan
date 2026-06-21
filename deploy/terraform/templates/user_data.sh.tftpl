@@ -1,0 +1,77 @@
+#!/bin/bash
+# Edu App EC2 bootstrap (Amazon Linux 2023).
+# Installs Docker + Compose v2, clones the repo, renders /opt/edu-app/.env from
+# SSM Parameter Store, then runs the existing deploy/scripts/deploy.sh.
+#
+# Rendered by terraform (ec2.tf). Variables are templatefile() substitutions.
+set -euxo pipefail
+
+REGION="${aws_region}"
+SSM_PREFIX="${ssm_path_prefix}"
+REPO_URL="${app_repo_url}"
+REPO_BRANCH="${app_repo_branch}"
+APP_DIR="/opt/edu-app"
+
+# --- Packages: Docker, git, AWS CLI v2 is preinstalled on AL2023 ---
+dnf update -y
+dnf install -y docker git
+
+# Docker Compose v2 plugin.
+mkdir -p /usr/local/lib/docker/cli-plugins
+COMPOSE_VERSION="v2.29.7"
+curl -fsSL "https://github.com/docker/compose/releases/download/$${COMPOSE_VERSION}/docker-compose-linux-x86_64" \
+  -o /usr/local/lib/docker/cli-plugins/docker-compose
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+# Log rotation for container logs (deploy/README.md §2).
+mkdir -p /etc/docker
+cat >/etc/docker/daemon.json <<'JSON'
+{
+  "log-driver": "json-file",
+  "log-opts": { "max-size": "20m", "max-file": "5" }
+}
+JSON
+
+systemctl enable --now docker
+
+# --- Clone the repo ---
+if [ ! -d "$${APP_DIR}/.git" ]; then
+  git clone --branch "$${REPO_BRANCH}" "$${REPO_URL}" "$${APP_DIR}"
+else
+  git -C "$${APP_DIR}" fetch --all --prune
+  git -C "$${APP_DIR}" checkout "$${REPO_BRANCH}"
+  git -C "$${APP_DIR}" pull --ff-only
+fi
+
+# --- Render .env from SSM Parameter Store (SecureString decrypted) ---
+# Each parameter leaf name is already UPPER_SNAKE (e.g. EDU_POSTGRES_URL), so the
+# leaf maps 1:1 to an env key. Quote values to survive special chars.
+umask 077
+: >"$${APP_DIR}/.env"
+aws ssm get-parameters-by-path \
+  --region "$${REGION}" \
+  --path "$${SSM_PREFIX}" \
+  --with-decryption \
+  --recursive \
+  --query "Parameters[].[Name,Value]" \
+  --output text |
+  while IFS=$$'\t' read -r name value; do
+    key="$${name##*/}"
+    printf '%s=%s\n' "$${key}" "$${value}" >>"$${APP_DIR}/.env"
+  done
+
+# Always-on production markers not stored in SSM.
+{
+  echo "EDU_ENV=${env_name}"
+  echo "EDU_S3_USE_PATH_STYLE=false"
+} >>"$${APP_DIR}/.env"
+chmod 600 "$${APP_DIR}/.env"
+
+# --- Deploy ---
+# deploy.sh reads .env, runs migrations, brings up the prod stack, smoke-tests.
+cd "$${APP_DIR}"
+export REPO_ROOT="$${APP_DIR}"
+sh deploy/scripts/deploy.sh || {
+  echo "deploy.sh failed; see logs above" >&2
+  exit 1
+}
